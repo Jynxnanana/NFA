@@ -98,7 +98,7 @@ function reset(){result.value=null;stepTrace.value=[]}
             <div class="card-top"><div><div class="section-title">State diagram <span class="live-indicator"><i></i> LIVE</span></div><div class="section-subtitle">Drag states to arrange your automaton</div></div><button class="dots-button" @click="exportJson"><MoreHorizontal :size="18"/></button></div>
             <div class="diagram-wrap" ref="diagram">
               <div class="diagram-grid"></div>
-              <svg class="diagram-svg" viewBox="0 0 800 410" preserveAspectRatio="none" :style="{transform:`scale(${zoom})`}">
+              <svg class="diagram-svg" viewBox="0 0 800 410" preserveAspectRatio="xMidYMid meet" :style="{transform:`scale(${zoom})`}">
                 <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#9aa3b3"/></marker><marker id="startArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#ff805f"/></marker></defs>
                 <g v-for="(t,i) in transitions" :key="i"><path class="edge-path" :d="edgePath(t)" marker-end="url(#arrow)"/><g class="edge-label" :transform="`translate(${edgeLabel(t).x},${edgeLabel(t).y})`"><rect x="-13" y="-12" width="26" height="23" rx="7"/><text text-anchor="middle" dominant-baseline="central">{{t.symbol}}</text></g></g>
                 <g v-for="s in states" :key="s.id" class="state-group" :class="{'state-selected':selectedState===s.id,'state-active':stepTrace.length&&stepTrace.at(-1)?.states.includes(s.id)}" @pointerdown.stop="startDrag($event,s)" @click.stop="selectedState=s.id">
