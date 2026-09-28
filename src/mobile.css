@@ -11,6 +11,17 @@
   color: #8d95a2;
 }
 .diagram-expand-button:hover { background: #f5f6f8; }
+.diagram-theme-button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #8d95a2;
+}
+.diagram-theme-button:hover { background: #f5f6f8; }
 .diagram-add-state { display: none; }
 .diagram-card.diagram-expanded {
   position: fixed;
@@ -25,9 +36,16 @@
   border-radius: 0;
   background: #fff;
 }
+.diagram-expanded > .modal-overlay { position: absolute; inset: 0; z-index: 110; }
 .diagram-expanded .card-top { flex: 0 0 62px; }
 .diagram-expanded .diagram-wrap { flex: 1 1 auto; min-height: 0; height: auto; }
 .diagram-expanded .diagram-footer { flex: 0 0 auto; }
+.dark-mode .diagram-card.diagram-expanded,
+.dark-mode .diagram-card:fullscreen { background: #20242d; }
+.dark-mode .diagram-theme-button { color: #a8b0bd; }
+.dark-mode .diagram-theme-button:hover { background: #303641; }
+.dark-mode .diagram-card.diagram-expanded .card-top,
+.dark-mode .diagram-card.diagram-expanded .diagram-footer { background: #20242d; }
 
 @media (max-width: 640px) {
   .sidebar {
