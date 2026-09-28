@@ -66,9 +66,36 @@
 .settings-option strong { color: #343b48; font-size: 12px; }
 .settings-option small { color: #929aa6; font-size: 10px; line-height: 1.4; }
 .setting-checkbox { flex: 0 0 auto; width: 18px; height: 18px; accent-color: #ff805f; }
+.transition-manager { border-top: 1px solid #eceef1; }
+.transition-manager-head { min-height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; }
+.transition-manager-head > div { display: flex; align-items: baseline; gap: 8px; }
+.transition-manager-head strong { color: #424a57; font-size: 11px; }
+.transition-manager-head span { color: #9aa2ae; font-size: 9px; }
+.transition-manager-head > button { height: 28px; display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; border: 1px solid #e9ebef; border-radius: 5px; background: #fff; color: #e67c5b; font-size: 9px; font-weight: 600; }
+.transition-list { border-top: 1px solid #f0f1f3; }
+.transition-item { min-height: 40px; display: grid; grid-template-columns: 1fr 35px 20px 1fr auto; align-items: center; gap: 8px; padding: 4px 15px; border-bottom: 1px solid #f0f1f3; }
+.transition-state-name { overflow: hidden; color: #555e6c; font: 600 10px 'Space Grotesk'; text-overflow: ellipsis; }
+.transition-symbol { width: max-content; min-width: 24px; padding: 4px 6px; border: 1px solid #eceef1; border-radius: 4px; background: #f5f6f8; color: #626b79; font: 10px 'Space Grotesk'; text-align: center; }
+.transition-item-arrow { color: #a3abb6; }
+.transition-item-actions { display: flex; align-items: center; gap: 3px; }
+.transition-item-actions button { width: 28px; height: 28px; display: grid; place-items: center; border: 0; border-radius: 5px; background: transparent; color: #858e9b; }
+.transition-item-actions button:hover { background: #f5f6f8; color: #e67c5b; }
+.transition-item-actions button:last-child:hover { color: #d46f62; }
+.transition-empty { padding: 18px 15px; color: #9aa2ae; font-size: 10px; }
+.rename-label { display: block; margin-top: 20px; color: #858d9a; font-size: 9px; font-weight: 700; letter-spacing: .5px; }
+.rename-label .symbol-input { margin-top: 7px; }
 .dark-mode .settings-option { border-top-color: #303641; }
 .dark-mode .settings-option strong { color: #e5e8ee; }
 .dark-mode .settings-option small { color: #9aa3b2; }
+.dark-mode .transition-manager { border-top-color: #303641; }
+.dark-mode .transition-manager-head strong { color: #d7dce5; }
+.dark-mode .transition-manager-head > button { background: #252a34; border-color: #39404c; }
+.dark-mode .transition-list,.dark-mode .transition-item { border-color: #303641; }
+.dark-mode .transition-state-name { color: #c4cbd6; }
+.dark-mode .transition-symbol { background: #252a34; border-color: #39404c; color: #d3d8e1; }
+.dark-mode .transition-item-actions button { color: #a8b0bd; }
+.dark-mode .transition-item-actions button:hover { background: #303641; color: #ff987c; }
+.dark-mode .transition-empty { color: #9aa3b2; }
 
 @media (max-width: 640px) {
   .sidebar {
@@ -295,6 +322,13 @@
   .settings-option { min-height: 66px; }
   .settings-option strong { font-size: 13px; }
   .settings-option small { font-size: 11px; }
+  .transition-manager-head { padding: 0 10px; }
+  .transition-item { grid-template-columns: minmax(26px,1fr) 30px 16px minmax(26px,1fr) auto; gap: 5px; padding: 4px 9px; }
+  .transition-item-actions { gap: 0; }
+  .transition-item-actions button { width: 27px; height: 32px; }
+  .transition-state-name { font-size: 11px; }
+  .transition-symbol { font-size: 11px; }
+  .rename-label { font-size: 10px; }
 }
 
 @media (max-width: 380px) {
