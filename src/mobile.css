@@ -120,3 +120,67 @@
     font-size: 7px;
   }
 }
+
+/* Android and other phone screens need more comfortable reading sizes. */
+@media (max-width: 640px) {
+  .breadcrumbs { font-size: 12px; }
+  .saved-label { font-size: 11px; }
+  .page-content { font-size: 14px; }
+  .eyebrow { font-size: 10px; }
+  .page-heading h1 { font-size: 29px; }
+  .subtitle { font-size: 13px; line-height: 1.55; }
+  .new-state-button { font-size: 12px; }
+
+  .section-title { font-size: 14px; }
+  .section-subtitle { font-size: 11px; line-height: 1.4; }
+  .live-indicator { font-size: 9px; }
+  .diagram-footer { min-height: 48px; height: auto; padding-top: 8px; padding-bottom: 8px; }
+  .legend-item { font-size: 10px; }
+  .add-transition-link { font-size: 10px; }
+  .state-label { font-size: 16px; }
+  .edge-label text { font-size: 13px; }
+  .state-control-row button { font-size: 9px; }
+
+  .field-label { font-size: 10px; }
+  .optional-label { font-size: 10px; }
+  .input-row { height: 42px; }
+  .input-row input { font-size: 15px; }
+  .sample-row > span { font-size: 9px; }
+  .sample-row button { font-size: 12px; padding: 5px 8px; }
+  .run-button { height: 42px; font-size: 13px; }
+  .result-panel { padding: 12px; }
+  .result-heading { font-size: 13px; }
+  .result-copy { font-size: 11px; line-height: 1.45; }
+  .result-bottom { font-size: 11px; }
+  .trace-row { font-size: 11px; min-height: 24px; }
+  .trace-step { font-size: 9px; min-width: 42px; }
+  .trace-symbol { font-size: 11px; }
+  .trace-states { font-size: 11px; }
+  .sim-footnote { font-size: 10px; line-height: 1.5; }
+
+  .data-tabs { min-height: 52px; height: auto; }
+  .data-tabs > button { font-size: 12px; }
+  .data-actions button { font-size: 10px; width: auto; padding: 0 7px; }
+  .transition-table { min-width: 490px; font-size: 12px; }
+  .transition-table th { font-size: 10px; }
+  .transition-table td { font-size: 12px; }
+  .state-cell { font-size: 12px; }
+  .dest-pill { font-size: 11px; }
+  .mini-tag { font-size: 8px; }
+  .table-footer { min-height: 40px; height: auto; font-size: 10px; }
+  .tuple-content pre { font-size: 12px; }
+  .tuple-note { font-size: 11px; line-height: 1.45; }
+  .page-footer { font-size: 9px; }
+
+  .modal-heading h2 { font-size: 19px; }
+  .modal-heading p { font-size: 12px; line-height: 1.45; }
+  .modal-fields label { font-size: 9px; }
+  .modal-fields select, .symbol-input { height: 40px; font-size: 12px; }
+  .cancel-button, .confirm-button { height: 38px; font-size: 12px; }
+}
+
+@media (max-width: 380px) {
+  .new-state-button { font-size: 0; }
+  .data-tabs > button { font-size: 11px; }
+  .data-actions button { font-size: 0; width: 30px; padding: 0; }
+}
