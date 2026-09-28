@@ -1,0 +1,9 @@
+{
+  "name": "nfa-automata-studio",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "vite", "build": "vite build", "preview": "vite preview" },
+  "dependencies": { "@vitejs/plugin-vue": "latest", "vite": "latest", "vue": "latest", "lucide-vue-next": "^0.468.0" },
+  "devDependencies": { "@tailwindcss/vite": "^4.0.0", "tailwindcss": "^4.0.0" }
+}
