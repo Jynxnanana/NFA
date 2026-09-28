@@ -46,6 +46,15 @@
 .dark-mode .diagram-theme-button:hover { background: #303641; }
 .dark-mode .diagram-card.diagram-expanded .card-top,
 .dark-mode .diagram-card.diagram-expanded .diagram-footer { background: #20242d; }
+.settings-options { display: flex; flex-direction: column; margin-top: 18px; }
+.settings-option { min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid #eceef1; }
+.settings-option > span { display: flex; flex-direction: column; gap: 4px; }
+.settings-option strong { color: #343b48; font-size: 12px; }
+.settings-option small { color: #929aa6; font-size: 10px; line-height: 1.4; }
+.setting-checkbox { flex: 0 0 auto; width: 18px; height: 18px; accent-color: #ff805f; }
+.dark-mode .settings-option { border-top-color: #303641; }
+.dark-mode .settings-option strong { color: #e5e8ee; }
+.dark-mode .settings-option small { color: #9aa3b2; }
 
 @media (max-width: 640px) {
   .sidebar {
@@ -267,6 +276,9 @@
   .modal-fields label { font-size: 9px; }
   .modal-fields select, .symbol-input { height: 40px; font-size: 12px; }
   .cancel-button, .confirm-button { height: 38px; font-size: 12px; }
+  .settings-option { min-height: 66px; }
+  .settings-option strong { font-size: 13px; }
+  .settings-option small { font-size: 11px; }
 }
 
 @media (max-width: 380px) {
