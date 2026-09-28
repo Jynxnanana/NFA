@@ -1,5 +1,17 @@
 /* Small-screen layout: use the full viewport width instead of a narrow icon rail. */
 .diagram-head-tools { display: flex; align-items: center; gap: 3px; }
+.diagram-history-button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #737c89;
+}
+.diagram-history-button:hover:not(:disabled) { background: #f5f6f8; color: #e67c5b; }
+.diagram-history-button:disabled { opacity: .35; cursor: default; }
 .diagram-expand-button {
   width: 30px;
   height: 30px;
@@ -44,6 +56,8 @@
 .dark-mode .diagram-card:fullscreen { background: #20242d; }
 .dark-mode .diagram-theme-button { color: #a8b0bd; }
 .dark-mode .diagram-theme-button:hover { background: #303641; }
+.dark-mode .diagram-history-button { color: #a8b0bd; }
+.dark-mode .diagram-history-button:hover:not(:disabled) { background: #303641; color: #ff987c; }
 .dark-mode .diagram-card.diagram-expanded .card-top,
 .dark-mode .diagram-card.diagram-expanded .diagram-footer { background: #20242d; }
 .settings-options { display: flex; flex-direction: column; margin-top: 18px; }
@@ -156,6 +170,8 @@
   }
 
   .diagram-expand-button { width: 34px; height: 34px; }
+  .diagram-history-button { width: 34px; height: 34px; }
+  .diagram-theme-button { width: 34px; height: 34px; }
   .diagram-head-tools { gap: 5px; }
 
   .diagram-card.diagram-expanded {

@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { Activity, ArrowRight, Braces, Check, ChevronDown, CircleHelp, CirclePlus, Code2, Copy, Download, FileJson2, GitBranch, Keyboard, Layers2, Maximize2, Minimize2, MoreHorizontal, Moon, Play, Plus, RotateCcw, Settings2, Sparkles, Sun, Trash2, X, Zap } from 'lucide-vue-next'
+import { Activity, ArrowRight, Braces, Check, ChevronDown, CircleHelp, CirclePlus, Code2, Copy, Download, FileJson2, GitBranch, Keyboard, Layers2, Maximize2, Minimize2, MoreHorizontal, Moon, Play, Plus, Redo2, RotateCcw, Settings2, Sparkles, Sun, Trash2, Undo2, X, Zap } from 'lucide-vue-next'
 
 const states = ref([
   { id: 'q0', x: 180, y: 206 }, { id: 'q1', x: 445, y: 135 }, { id: 'q2', x: 445, y: 285 }, { id: 'q3', x: 710, y: 206 },
@@ -17,6 +17,7 @@ const showAddTransition = ref(false), newTransition = ref({ from: 'q0', to: 'q1'
 const showAlphabetInput = ref(false), alphabetInput = ref('')
 const showSettings = ref(false)
 const dragging = ref(null), diagram = ref(null), diagramCard = ref(null), diagramExpanded = ref(false), zoom = ref(1), toast = ref('')
+const undoStack = ref([]), redoStack = ref([])
 const isDark = ref(localStorage.getItem('orbit-theme') === 'dark')
 const showDiagramGrid = ref(localStorage.getItem('orbit-show-grid') !== 'false')
 const highlightActiveStates = ref(localStorage.getItem('orbit-highlight-active') !== 'false')
@@ -50,6 +51,17 @@ const table = computed(() => states.value.map(s => ({ state:s.id, cells:[...alph
 const tuple = computed(() => `M = (Q, Σ, δ, q₀, F)\nQ = {${states.value.map(s=>s.id).join(', ')}}\nΣ = {${alphabet.value.join(', ')}}\nq₀ = ${start.value}\nF = {${finals.value.join(', ')}}\nδ = Transition function`)
 const statusColor = computed(() => result.value === 'ACCEPTED' ? 'accept' : 'reject')
 
+function machineSnapshot(){return {states:states.value.map(s=>({...s})),alphabet:[...alphabet.value],transitions:transitions.value.map(t=>({...t})),start:start.value,finals:[...finals.value]}}
+function rememberUndo(before){
+  if(JSON.stringify(before)===JSON.stringify(machineSnapshot()))return
+  undoStack.value.push(before)
+  if(undoStack.value.length>100)undoStack.value.shift()
+  redoStack.value=[]
+}
+function restoreMachine(snapshot){states.value=snapshot.states.map(s=>({...s}));alphabet.value=[...snapshot.alphabet];transitions.value=snapshot.transitions.map(t=>({...t}));start.value=snapshot.start;finals.value=[...snapshot.finals];selectedState.value=null;reset()}
+function undo(){if(!undoStack.value.length)return;const current=machineSnapshot();const previous=undoStack.value.pop();redoStack.value.push(current);restoreMachine(previous)}
+function redo(){if(!redoStack.value.length)return;const current=machineSnapshot();const next=redoStack.value.pop();undoStack.value.push(current);restoreMachine(next)}
+
 function closure(input) {
   const seen = new Set(input), stack = [...input]
   while(stack.length){ const s=stack.pop(); for(const t of transitions.value) if(t.from===s&&t.symbol==='ε'&&!seen.has(t.to)){seen.add(t.to);stack.push(t.to)} }
@@ -65,15 +77,16 @@ function simulate() {
   }
   stepTrace.value=trace; result.value=current.some(s=>finals.value.includes(s))?'ACCEPTED':'REJECTED'
 }
-function addState(){ const n=states.value.length; const id=`q${n}`; states.value.push({id,x:250+(n%3)*190,y:110+Math.floor(n/3)*120}); notify(`Added ${id}`) }
-function deleteState(id){ if(states.value.length<=1)return notify('Keep at least one state'); states.value=states.value.filter(s=>s.id!==id);transitions.value=transitions.value.filter(t=>t.from!==id&&t.to!==id);finals.value=finals.value.filter(f=>f!==id);if(start.value===id)start.value=states.value[0].id;selectedState.value=null;notify(`Deleted ${id}`) }
-function addTransition(){ if(!alphabet.value.includes(newTransition.value.symbol)&&newTransition.value.symbol!=='ε')return notify('Choose a symbol from the alphabet');transitions.value.push({...newTransition.value});showAddTransition.value=false;notify('Transition added') }
-function addSymbol(){const s=alphabetInput.value.trim();if(!s||s.length!==1||s==='ε'||alphabet.value.includes(s))return notify('Enter one unique character');alphabet.value.push(s);alphabetInput.value='';showAlphabetInput.value=false}
+function addState(){ const before=machineSnapshot();const n=states.value.length; const id=`q${n}`; states.value.push({id,x:250+(n%3)*190,y:110+Math.floor(n/3)*120});rememberUndo(before);notify(`Added ${id}`) }
+function deleteState(id){ if(states.value.length<=1)return notify('Keep at least one state');const before=machineSnapshot();states.value=states.value.filter(s=>s.id!==id);transitions.value=transitions.value.filter(t=>t.from!==id&&t.to!==id);finals.value=finals.value.filter(f=>f!==id);if(start.value===id)start.value=states.value[0].id;selectedState.value=null;rememberUndo(before);reset();notify(`Deleted ${id}`) }
+function addTransition(){ if(!alphabet.value.includes(newTransition.value.symbol)&&newTransition.value.symbol!=='ε')return notify('Choose a symbol from the alphabet');const before=machineSnapshot();transitions.value.push({...newTransition.value});rememberUndo(before);showAddTransition.value=false;reset();notify('Transition added') }
+function addSymbol(){const s=alphabetInput.value.trim();if(!s||s.length!==1||s==='ε'||alphabet.value.includes(s))return notify('Enter one unique character');const before=machineSnapshot();alphabet.value.push(s);rememberUndo(before);alphabetInput.value='';showAlphabetInput.value=false;reset()}
 function notify(msg){toast.value=msg;setTimeout(()=>toast.value='',2200)}
-function toggleFinal(id){finals.value=finals.value.includes(id)?finals.value.filter(x=>x!==id):[...finals.value,id]}
-function startDrag(e,s){dragging.value={id:s.id,offsetX:e.clientX,offsetY:e.clientY,originX:s.x,originY:s.y};selectedState.value=s.id;window.addEventListener('pointermove',moveDrag);window.addEventListener('pointerup',stopDrag,{once:true})}
+function toggleFinal(id){const before=machineSnapshot();finals.value=finals.value.includes(id)?finals.value.filter(x=>x!==id):[...finals.value,id];rememberUndo(before)}
+function setStartState(id){const before=machineSnapshot();start.value=id;rememberUndo(before);notify(`${id} is now the start state`)}
+function startDrag(e,s){dragging.value={id:s.id,offsetX:e.clientX,offsetY:e.clientY,originX:s.x,originY:s.y,before:machineSnapshot()};selectedState.value=s.id;window.addEventListener('pointermove',moveDrag);window.addEventListener('pointerup',stopDrag,{once:true})}
 function moveDrag(e){if(!dragging.value||!diagram.value)return;const box=diagram.value.getBoundingClientRect(),scaleX=800/box.width,scaleY=410/box.height;const s=states.value.find(s=>s.id===dragging.value.id);if(s){s.x=Math.max(42,Math.min(758,dragging.value.originX+(e.clientX-dragging.value.offsetX)*scaleX));s.y=Math.max(42,Math.min(368,dragging.value.originY+(e.clientY-dragging.value.offsetY)*scaleY))}}
-function stopDrag(){dragging.value=null;window.removeEventListener('pointermove',moveDrag)}
+function stopDrag(){const before=dragging.value?.before;dragging.value=null;window.removeEventListener('pointermove',moveDrag);if(before)rememberUndo(before)}
 function exportJson(){const blob=new Blob([JSON.stringify({states:states.value,alphabet:alphabet.value,transitions:transitions.value,start:start.value,finals:finals.value},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='my-nfa.json';a.click();URL.revokeObjectURL(a.href);notify('NFA exported')}
 function reset(){result.value=null;stepTrace.value=[]}
 async function expandDiagram(){
@@ -122,7 +135,7 @@ onBeforeUnmount(()=>document.removeEventListener('fullscreenchange',onFullscreen
         <div class="page-heading"><div><div class="eyebrow"><span class="eyebrow-icon"><Sparkles :size="12"/></span> YOUR AUTOMATA WORKSPACE</div><h1>NFA Builder</h1><p class="subtitle">Design, visualize, and test your nondeterministic finite automata.</p></div><button class="new-state-button" @click="addState"><Plus :size="16"/> Add state</button></div>
         <div class="editor-layout">
           <section id="diagram-card" ref="diagramCard" class="card diagram-card" :class="{'diagram-expanded':diagramExpanded}">
-            <div class="card-top"><div><div class="section-title">State diagram <span class="live-indicator"><i></i> LIVE</span></div><div class="section-subtitle">Drag states to arrange your automaton</div></div><div class="diagram-head-tools"><button v-if="diagramExpanded" class="diagram-theme-button" :aria-label="isDark?'Switch to light mode':'Switch to dark mode'" :title="isDark?'Switch to light mode':'Switch to dark mode'" @click="isDark=!isDark"><Sun v-if="isDark" :size="16"/><Moon v-else :size="16"/></button><button v-if="diagramExpanded" class="diagram-theme-button" aria-label="Settings" title="Settings" @click="showSettings=true"><Settings2 :size="16"/></button><button class="diagram-expand-button" :aria-label="diagramExpanded?'Minimize diagram':'Maximize diagram'" :title="diagramExpanded?'Minimize diagram':'Maximize diagram'" @click="diagramExpanded?collapseDiagram():expandDiagram()"><Minimize2 v-if="diagramExpanded" :size="16"/><Maximize2 v-else :size="16"/></button><button class="dots-button" title="Export NFA" @click="exportJson"><MoreHorizontal :size="18"/></button></div></div>
+            <div class="card-top"><div><div class="section-title">State diagram <span class="live-indicator"><i></i> LIVE</span></div><div class="section-subtitle">Drag states to arrange your automaton</div></div><div class="diagram-head-tools"><button class="diagram-history-button" :disabled="!undoStack.length" aria-label="Undo" title="Undo" @click="undo"><Undo2 :size="16"/></button><button class="diagram-history-button" :disabled="!redoStack.length" aria-label="Redo" title="Redo" @click="redo"><Redo2 :size="16"/></button><button v-if="diagramExpanded" class="diagram-theme-button" :aria-label="isDark?'Switch to light mode':'Switch to dark mode'" :title="isDark?'Switch to light mode':'Switch to dark mode'" @click="isDark=!isDark"><Sun v-if="isDark" :size="16"/><Moon v-else :size="16"/></button><button v-if="diagramExpanded" class="diagram-theme-button" aria-label="Settings" title="Settings" @click="showSettings=true"><Settings2 :size="16"/></button><button class="diagram-expand-button" :aria-label="diagramExpanded?'Minimize diagram':'Maximize diagram'" :title="diagramExpanded?'Minimize diagram':'Maximize diagram'" @click="diagramExpanded?collapseDiagram():expandDiagram()"><Minimize2 v-if="diagramExpanded" :size="16"/><Maximize2 v-else :size="16"/></button><button class="dots-button" title="Export NFA" @click="exportJson"><MoreHorizontal :size="18"/></button></div></div>
             <div class="diagram-wrap" ref="diagram">
               <div v-if="showDiagramGrid" class="diagram-grid"></div>
               <button class="diagram-add-state" @click="addState"><Plus :size="15"/> Add state</button>
@@ -132,7 +145,7 @@ onBeforeUnmount(()=>document.removeEventListener('fullscreenchange',onFullscreen
                 <g v-for="s in states" :key="s.id" class="state-group" :class="{'state-selected':selectedState===s.id,'state-active':highlightActiveStates&&stepTrace.length&&stepTrace.at(-1)?.states.includes(s.id)}" @pointerdown.stop="startDrag($event,s)" @click.stop="selectedState=s.id">
                   <line v-if="s.id===start" :x1="s.x-76" :y1="s.y" :x2="s.x-43" :y2="s.y" class="start-line" marker-end="url(#startArrow)"/>
                   <circle v-if="finals.includes(s.id)" :cx="s.x" :cy="s.y" r="37" class="final-ring"/><circle :cx="s.x" :cy="s.y" r="31" class="state-circle"/><text :x="s.x" :y="s.y+5" text-anchor="middle" class="state-label">{{s.id}}</text>
-                  <foreignObject :x="s.x-45" :y="s.y-59" width="90" height="25" class="state-controls"><div xmlns="http://www.w3.org/1999/xhtml" class="state-control-row"><button @pointerdown.stop @click.stop="start=s.id;notify(`${s.id} is now the start state`)">→ start</button><button @pointerdown.stop @click.stop="toggleFinal(s.id);notify('Final state updated')">{{finals.includes(s.id)?'★ final':'☆ final'}}</button><button class="delete-state" @pointerdown.stop @click.stop="deleteState(s.id)"><Trash2 :size="11"/></button></div></foreignObject>
+                  <foreignObject :x="s.x-45" :y="s.y-59" width="90" height="25" class="state-controls"><div xmlns="http://www.w3.org/1999/xhtml" class="state-control-row"><button @pointerdown.stop @click.stop="setStartState(s.id)">→ start</button><button @pointerdown.stop @click.stop="toggleFinal(s.id);notify('Final state updated')">{{finals.includes(s.id)?'★ final':'☆ final'}}</button><button class="delete-state" @pointerdown.stop @click.stop="deleteState(s.id)"><Trash2 :size="11"/></button></div></foreignObject>
                 </g>
               </svg>
               <div v-if="states.length===0" class="empty-diagram">Add a state to start building your NFA</div>
