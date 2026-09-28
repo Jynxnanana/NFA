@@ -1,6 +1,6 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
-import { Activity, ArrowRight, Braces, Check, ChevronDown, CircleHelp, CirclePlus, Code2, Copy, Download, FileJson2, GitBranch, Keyboard, Layers2, MoreHorizontal, Moon, Play, Plus, RotateCcw, Settings2, Sparkles, Sun, Trash2, X, Zap } from 'lucide-vue-next'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { Activity, ArrowRight, Braces, Check, ChevronDown, CircleHelp, CirclePlus, Code2, Copy, Download, FileJson2, GitBranch, Keyboard, Layers2, Maximize2, Minimize2, MoreHorizontal, Moon, Play, Plus, RotateCcw, Settings2, Sparkles, Sun, Trash2, X, Zap } from 'lucide-vue-next'
 
 const states = ref([
   { id: 'q0', x: 180, y: 206 }, { id: 'q1', x: 445, y: 135 }, { id: 'q2', x: 445, y: 285 }, { id: 'q3', x: 710, y: 206 },
@@ -15,7 +15,7 @@ const start = ref('q0'), finals = ref(['q3']), activeTab = ref('Simulator')
 const inputString = ref('0101'), result = ref(null), stepTrace = ref([]), selectedState = ref(null)
 const showAddTransition = ref(false), newTransition = ref({ from: 'q0', to: 'q1', symbol: '0' })
 const showAlphabetInput = ref(false), alphabetInput = ref('')
-const dragging = ref(null), diagram = ref(null), zoom = ref(1), toast = ref('')
+const dragging = ref(null), diagram = ref(null), diagramCard = ref(null), diagramExpanded = ref(false), zoom = ref(1), toast = ref('')
 const isDark = ref(localStorage.getItem('orbit-theme') === 'dark')
 watch(isDark, value => {
   localStorage.setItem('orbit-theme', value ? 'dark' : 'light')
@@ -71,6 +71,28 @@ function moveDrag(e){if(!dragging.value||!diagram.value)return;const box=diagram
 function stopDrag(){dragging.value=null;window.removeEventListener('pointermove',moveDrag)}
 function exportJson(){const blob=new Blob([JSON.stringify({states:states.value,alphabet:alphabet.value,transitions:transitions.value,start:start.value,finals:finals.value},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='my-nfa.json';a.click();URL.revokeObjectURL(a.href);notify('NFA exported')}
 function reset(){result.value=null;stepTrace.value=[]}
+async function expandDiagram(){
+  diagramExpanded.value=true
+  if(window.matchMedia('(max-width: 640px)').matches){
+    try {
+      await diagramCard.value?.requestFullscreen?.()
+      await screen.orientation?.lock?.('landscape')
+    } catch { notify('Turn your phone sideways for landscape view') }
+  }
+}
+async function collapseDiagram(){
+  diagramExpanded.value=false
+  try { screen.orientation?.unlock?.() } catch {}
+  if(document.fullscreenElement){try { await document.exitFullscreen() } catch {}}
+}
+function onFullscreenChange(){
+  if(!document.fullscreenElement && diagramExpanded.value){
+    diagramExpanded.value=false
+    try { screen.orientation?.unlock?.() } catch {}
+  }
+}
+onMounted(()=>document.addEventListener('fullscreenchange',onFullscreenChange))
+onBeforeUnmount(()=>document.removeEventListener('fullscreenchange',onFullscreenChange))
 </script>
 
 <template>
@@ -94,10 +116,11 @@ function reset(){result.value=null;stepTrace.value=[]}
       <div class="page-content">
         <div class="page-heading"><div><div class="eyebrow"><span class="eyebrow-icon"><Sparkles :size="12"/></span> YOUR AUTOMATA WORKSPACE</div><h1>NFA Builder</h1><p class="subtitle">Design, visualize, and test your nondeterministic finite automata.</p></div><button class="new-state-button" @click="addState"><Plus :size="16"/> Add state</button></div>
         <div class="editor-layout">
-          <section class="card diagram-card">
-            <div class="card-top"><div><div class="section-title">State diagram <span class="live-indicator"><i></i> LIVE</span></div><div class="section-subtitle">Drag states to arrange your automaton</div></div><button class="dots-button" @click="exportJson"><MoreHorizontal :size="18"/></button></div>
+          <section ref="diagramCard" class="card diagram-card" :class="{'diagram-expanded':diagramExpanded}">
+            <div class="card-top"><div><div class="section-title">State diagram <span class="live-indicator"><i></i> LIVE</span></div><div class="section-subtitle">Drag states to arrange your automaton</div></div><div class="diagram-head-tools"><button class="diagram-expand-button" :aria-label="diagramExpanded?'Minimize diagram':'Maximize diagram'" :title="diagramExpanded?'Minimize diagram':'Maximize diagram'" @click="diagramExpanded?collapseDiagram():expandDiagram()"><Minimize2 v-if="diagramExpanded" :size="16"/><Maximize2 v-else :size="16"/></button><button class="dots-button" title="Export NFA" @click="exportJson"><MoreHorizontal :size="18"/></button></div></div>
             <div class="diagram-wrap" ref="diagram">
               <div class="diagram-grid"></div>
+              <button class="diagram-add-state" @click="addState"><Plus :size="15"/> Add state</button>
               <svg class="diagram-svg" viewBox="0 0 800 410" preserveAspectRatio="xMidYMid meet" :style="{transform:`scale(${zoom})`}">
                 <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#9aa3b3"/></marker><marker id="startArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#ff805f"/></marker></defs>
                 <g v-for="(t,i) in transitions" :key="i"><path class="edge-path" :d="edgePath(t)" marker-end="url(#arrow)"/><g class="edge-label" :transform="`translate(${edgeLabel(t).x},${edgeLabel(t).y})`"><rect x="-13" y="-12" width="26" height="23" rx="7"/><text text-anchor="middle" dominant-baseline="central">{{t.symbol}}</text></g></g>

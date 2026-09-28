@@ -1,4 +1,34 @@
 /* Small-screen layout: use the full viewport width instead of a narrow icon rail. */
+.diagram-head-tools { display: flex; align-items: center; gap: 3px; }
+.diagram-expand-button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #8d95a2;
+}
+.diagram-expand-button:hover { background: #f5f6f8; }
+.diagram-add-state { display: none; }
+.diagram-card.diagram-expanded {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0;
+  background: #fff;
+}
+.diagram-expanded .card-top { flex: 0 0 62px; }
+.diagram-expanded .diagram-wrap { flex: 1 1 auto; min-height: 0; height: auto; }
+.diagram-expanded .diagram-footer { flex: 0 0 auto; }
+
 @media (max-width: 640px) {
   .sidebar {
     inset: 0 0 auto;
@@ -77,6 +107,44 @@
     height: clamp(205px, 68vw, 270px);
   }
 
+  .page-heading .new-state-button { display: none; }
+
+  .diagram-add-state {
+    position: absolute;
+    z-index: 2;
+    top: 10px;
+    left: 10px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 7px;
+    background: #ff805f;
+    color: #fff;
+    box-shadow: 0 3px 9px #ff805f40;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .diagram-expand-button { width: 34px; height: 34px; }
+  .diagram-head-tools { gap: 5px; }
+
+  .diagram-card.diagram-expanded {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .diagram-expanded .diagram-wrap {
+    height: auto;
+  }
+
+  .diagram-expanded .diagram-add-state {
+    top: 12px;
+    left: 14px;
+  }
+
   .diagram-svg {
     transform-origin: center;
   }
@@ -97,6 +165,10 @@
   .dark-mode .sidebar {
     border-bottom-color: #303641;
   }
+
+  .dark-mode .diagram-card.diagram-expanded { background: #20242d; }
+  .dark-mode .diagram-expand-button { color: #a8b0bd; }
+  .dark-mode .diagram-expand-button:hover { background: #303641; }
 }
 
 @media (max-width: 380px) {
