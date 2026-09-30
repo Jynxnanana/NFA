@@ -20,6 +20,7 @@ const showAlphabetInput = ref(false), alphabetInput = ref('')
 const showSettings = ref(false)
 const dragging = ref(null), diagram = ref(null), diagramCard = ref(null), diagramExpanded = ref(false), zoom = ref(1), toast = ref('')
 const focusMode = ref(null)
+const pan = ref({x:0,y:0}), panning = ref(null)
 const gesturePointers = new Map()
 let pinchStart = null
 const undoStack = ref([]), redoStack = ref([])
@@ -110,18 +111,46 @@ function notify(msg){toast.value=msg;setTimeout(()=>toast.value='',2200)}
 function toggleFinal(id){const before=machineSnapshot();finals.value=finals.value.includes(id)?finals.value.filter(x=>x!==id):[...finals.value,id];rememberUndo(before)}
 function setStartState(id){const before=machineSnapshot();start.value=id;rememberUndo(before);notify(`${id} is now the start state`)}
 function startDrag(e,s){if(e.pointerType==='touch'&&gesturePointers.size>=2)return;dragging.value={id:s.id,offsetX:e.clientX,offsetY:e.clientY,originX:s.x,originY:s.y,before:machineSnapshot()};selectedState.value=s.id;window.addEventListener('pointermove',moveDrag);window.addEventListener('pointerup',stopDrag,{once:true})}
-function onDiagramPointerDown(e){if(e.pointerType!=='touch')return;gesturePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(gesturePointers.size>=2){dragging.value=null;const points=[...gesturePointers.values()].slice(0,2);pinchStart={distance:Math.hypot(points[1].x-points[0].x,points[1].y-points[0].y),zoom:zoom.value}}}
-function onDiagramPointerMove(e){if(e.pointerType!=='touch'||!gesturePointers.has(e.pointerId))return;gesturePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(gesturePointers.size<2||!pinchStart)return;e.preventDefault();const points=[...gesturePointers.values()].slice(0,2),distance=Math.hypot(points[1].x-points[0].x,points[1].y-points[0].y);zoom.value=Math.max(.5,Math.min(2.5,pinchStart.zoom*distance/Math.max(pinchStart.distance,1)))}
-function onDiagramPointerEnd(e){if(e.pointerType!=='touch')return;gesturePointers.delete(e.pointerId);if(gesturePointers.size<2)pinchStart=null;if(gesturePointers.size===0)dragging.value=null}
-function onDiagramWheel(e){if(!e.ctrlKey&&!e.metaKey)return;e.preventDefault();zoom.value=Math.max(.5,Math.min(2.5,zoom.value*Math.exp(-e.deltaY*.01)))}
-function moveDrag(e){if(gesturePointers.size>=2||!dragging.value||!diagram.value)return;const box=diagram.value.getBoundingClientRect(),bounds=diagramViewBox.value.split(' ').map(Number),scaleX=bounds[2]/box.width,scaleY=bounds[3]/box.height;const s=states.value.find(s=>s.id===dragging.value.id);if(s){s.x=Math.max(42,Math.min(758,dragging.value.originX+(e.clientX-dragging.value.offsetX)*scaleX));s.y=Math.max(42,Math.min(368,dragging.value.originY+(e.clientY-dragging.value.offsetY)*scaleY))}}
+function canPanFrom(e){return !e.target.closest?.('.state-group,button,.zoom-controls')}
+function beginPan(e){panning.value={pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,originX:pan.value.x,originY:pan.value.y}}
+function onDiagramPointerDown(e){
+  if(e.pointerType==='touch'){
+    gesturePointers.set(e.pointerId,{x:e.clientX,y:e.clientY,panEligible:canPanFrom(e)})
+    if(gesturePointers.size>=2){dragging.value=null;panning.value=null;const points=[...gesturePointers.values()].slice(0,2);pinchStart={distance:Math.hypot(points[1].x-points[0].x,points[1].y-points[0].y),zoom:zoom.value}}
+    else if(canPanFrom(e))beginPan(e)
+    return
+  }
+  if(e.pointerType==='mouse'&&e.button===0&&canPanFrom(e)){beginPan(e);e.currentTarget.setPointerCapture?.(e.pointerId)}
+}
+function onDiagramPointerMove(e){
+  if(e.pointerType==='touch'&&gesturePointers.has(e.pointerId))gesturePointers.set(e.pointerId,{...gesturePointers.get(e.pointerId),x:e.clientX,y:e.clientY})
+  if(panning.value?.pointerId===e.pointerId&&gesturePointers.size<2){pan.value={x:panning.value.originX+e.clientX-panning.value.startX,y:panning.value.originY+e.clientY-panning.value.startY};e.preventDefault();return}
+  if(e.pointerType!=='touch'||!gesturePointers.has(e.pointerId))return
+  if(gesturePointers.size<2||!pinchStart)return
+  e.preventDefault();const points=[...gesturePointers.values()].slice(0,2),distance=Math.hypot(points[1].x-points[0].x,points[1].y-points[0].y);zoom.value=Math.max(.5,Math.min(2.5,pinchStart.zoom*distance/Math.max(pinchStart.distance,1)))
+}
+function onDiagramPointerEnd(e){
+  if(panning.value?.pointerId===e.pointerId)panning.value=null
+  if(e.pointerType!=='touch')return
+  gesturePointers.delete(e.pointerId)
+  if(gesturePointers.size<2)pinchStart=null
+  if(gesturePointers.size===1){const [id,point]=[...gesturePointers.entries()][0];if(point.panEligible){panning.value={pointerId:id,startX:point.x,startY:point.y,originX:pan.value.x,originY:pan.value.y}}}
+  if(gesturePointers.size===0)dragging.value=null
+}
+function onDiagramWheel(e){
+  if(e.ctrlKey||e.metaKey){e.preventDefault();zoom.value=Math.max(.5,Math.min(2.5,zoom.value*Math.exp(-e.deltaY*.01)));return}
+  if(e.deltaX||e.deltaY){e.preventDefault();pan.value={x:pan.value.x-e.deltaX,y:pan.value.y-e.deltaY}}
+}
+function moveDrag(e){if(gesturePointers.size>=2||!dragging.value||!diagram.value)return;const svgBox=diagram.value.querySelector('.diagram-svg')?.getBoundingClientRect(),bounds=diagramViewBox.value.split(' ').map(Number);if(!svgBox)return;const scaleX=bounds[2]/svgBox.width,scaleY=bounds[3]/svgBox.height;const s=states.value.find(s=>s.id===dragging.value.id);if(s){s.x=Math.max(42,Math.min(758,dragging.value.originX+(e.clientX-dragging.value.offsetX)*scaleX));s.y=Math.max(42,Math.min(368,dragging.value.originY+(e.clientY-dragging.value.offsetY)*scaleY))}}
 function stopDrag(){const before=dragging.value?.before;dragging.value=null;window.removeEventListener('pointermove',moveDrag);if(before)rememberUndo(before)}
 function exportJson(){const blob=new Blob([JSON.stringify({states:states.value,alphabet:alphabet.value,transitions:transitions.value,start:start.value,finals:finals.value},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='my-nfa.json';a.click();URL.revokeObjectURL(a.href);notify('NFA exported')}
 function reset(){result.value=null;stepTrace.value=[]}
+function resetDiagramView(){zoom.value=1;pan.value={x:0,y:0};focusMode.value=null}
 function toggleLegendFocus(mode){
   if (mode === 'accepting' && finals.value.length === 0) return notify('Mark a state as accepting first')
   focusMode.value = focusMode.value === mode ? null : mode
   zoom.value = 1
+  pan.value = {x:0,y:0}
   selectedState.value = focusMode.value === 'start' ? start.value : null
 }
 async function expandDiagram(){
@@ -171,10 +200,10 @@ onBeforeUnmount(()=>document.removeEventListener('fullscreenchange',onFullscreen
         <div class="editor-layout">
           <section id="diagram-card" ref="diagramCard" class="card diagram-card" :class="{'diagram-expanded':diagramExpanded}">
             <div class="card-top"><div><div class="section-title">State diagram <span class="live-indicator"><i></i> LIVE</span></div><div class="section-subtitle">Drag states to arrange your automaton</div></div><div class="diagram-head-tools"><button class="diagram-history-button" :disabled="!undoStack.length" aria-label="Undo" title="Undo" @click="undo"><Undo2 :size="16"/></button><button class="diagram-history-button" :disabled="!redoStack.length" aria-label="Redo" title="Redo" @click="redo"><Redo2 :size="16"/></button><button v-if="diagramExpanded" class="diagram-theme-button" :aria-label="isDark?'Switch to light mode':'Switch to dark mode'" :title="isDark?'Switch to light mode':'Switch to dark mode'" @click="isDark=!isDark"><Sun v-if="isDark" :size="16"/><Moon v-else :size="16"/></button><button v-if="diagramExpanded" class="diagram-theme-button" aria-label="Settings" title="Settings" @click="showSettings=true"><Settings2 :size="16"/></button><button class="diagram-expand-button" :aria-label="diagramExpanded?'Minimize diagram':'Maximize diagram'" :title="diagramExpanded?'Minimize diagram':'Maximize diagram'" @click="diagramExpanded?collapseDiagram():expandDiagram()"><Minimize2 v-if="diagramExpanded" :size="16"/><Maximize2 v-else :size="16"/></button><button class="dots-button" title="Export NFA" @click="exportJson"><MoreHorizontal :size="18"/></button></div></div>
-            <div class="diagram-wrap" ref="diagram" @pointerdown.capture="onDiagramPointerDown" @pointermove.capture="onDiagramPointerMove" @pointerup.capture="onDiagramPointerEnd" @pointercancel.capture="onDiagramPointerEnd" @wheel="onDiagramWheel">
+            <div class="diagram-wrap" ref="diagram" title="Swipe or drag the blank canvas to pan; pinch to zoom" @pointerdown.capture="onDiagramPointerDown" @pointermove.capture="onDiagramPointerMove" @pointerup.capture="onDiagramPointerEnd" @pointercancel.capture="onDiagramPointerEnd" @wheel="onDiagramWheel">
               <div v-if="showDiagramGrid" class="diagram-grid"></div>
               <button class="diagram-add-state" @click="addState"><Plus :size="15"/> Add state</button>
-              <svg class="diagram-svg" :viewBox="diagramViewBox" preserveAspectRatio="xMidYMid meet" :style="{transform:`scale(${zoom})`}">
+              <svg class="diagram-svg" :viewBox="diagramViewBox" preserveAspectRatio="xMidYMid meet" :style="{transform:`translate(${pan.x}px, ${pan.y}px) scale(${zoom})`}">
                 <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#9aa3b3"/></marker><marker id="startArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#ff805f"/></marker></defs>
                 <g v-for="(t,i) in transitions" :key="i"><path class="edge-path" :d="edgePath(t)" marker-end="url(#arrow)"/><g class="edge-label" :transform="`translate(${edgeLabel(t).x},${edgeLabel(t).y})`"><rect x="-13" y="-12" width="26" height="23" rx="7"/><text text-anchor="middle" dominant-baseline="central">{{t.symbol}}</text></g></g>
                 <g v-for="s in states" :key="s.id" class="state-group" :class="{'state-selected':selectedState===s.id,'state-legend-focus':focusedStates.some(target=>target.id===s.id),'state-active':highlightActiveStates&&stepTrace.length&&stepTrace.at(-1)?.states.includes(s.id)}" @pointerdown.stop="startDrag($event,s)" @click.stop="selectedState=s.id">
@@ -184,7 +213,7 @@ onBeforeUnmount(()=>document.removeEventListener('fullscreenchange',onFullscreen
                 </g>
               </svg>
               <div v-if="states.length===0" class="empty-diagram">Add a state to start building your NFA</div>
-              <div class="zoom-controls"><button title="Zoom in" @click="zoom=Math.min(2.5,zoom+.1)">+</button><span>{{Math.round(zoom*100)}}%</span><button title="Zoom out" @click="zoom=Math.max(.5,zoom-.1)">−</button><button title="Reset zoom" @click="zoom=1"><RotateCcw :size="12"/></button></div>
+              <div class="zoom-controls"><button title="Zoom in" @click="zoom=Math.min(2.5,zoom+.1)">+</button><span>{{Math.round(zoom*100)}}%</span><button title="Zoom out" @click="zoom=Math.max(.5,zoom-.1)">−</button><button title="Reset zoom and pan" @click="resetDiagramView"><RotateCcw :size="12"/></button></div>
               <div class="diagram-hint"><span class="hint-dot"></span> {{states.length}} states <span class="hint-sep">·</span> {{transitions.length}} transitions</div>
             </div>
             <div class="diagram-footer"><button class="legend-item legend-focus-button" :class="{'legend-focus-active':focusMode==='start'}" :aria-pressed="focusMode==='start'" title="Focus on the start state; click again to reset" @click="toggleLegendFocus('start')"><span class="legend-start">→</span><span>Start state</span></button><button class="legend-item legend-focus-button" :class="{'legend-focus-active':focusMode==='accepting'}" :aria-pressed="focusMode==='accepting'" title="Focus on accepting states; click again to reset" @click="toggleLegendFocus('accepting')"><span class="legend-final"></span><span>Accepting state</span></button><div class="legend-item"><span class="legend-edge">→</span><span>Transition</span></div><button class="add-transition-link" @click="showAddTransition=true"><CirclePlus :size="14"/> Add transition</button></div>
