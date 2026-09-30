@@ -19,6 +19,7 @@ const editingTransitionIndex = ref(null), showRenameState = ref(false), renameTa
 const showAlphabetInput = ref(false), alphabetInput = ref('')
 const showSettings = ref(false)
 const dragging = ref(null), diagram = ref(null), diagramCard = ref(null), diagramExpanded = ref(false), zoom = ref(1), toast = ref('')
+const focusMode = ref(null)
 const undoStack = ref([]), redoStack = ref([])
 const isDark = ref(localStorage.getItem('orbit-theme') === 'dark')
 const showDiagramGrid = ref(localStorage.getItem('orbit-show-grid') !== 'false')
@@ -50,6 +51,20 @@ const edgeLabel = t => {
   return {x:(a.x+b.x)/2-dy/d*bend,y:(a.y+b.y)/2+dx/d*bend-12}
 }
 const table = computed(() => states.value.map(s => ({ state:s.id, cells:[...alphabet.value,'ε'].map(sym => transitions.value.filter(t=>t.from===s.id&&t.symbol===sym).map(t=>t.to)) })))
+const focusedStates = computed(() => focusMode.value === 'start' ? states.value.filter(s => s.id === start.value) : focusMode.value === 'accepting' ? states.value.filter(s => finals.value.includes(s.id)) : [])
+const diagramViewBox = computed(() => {
+  if (!focusMode.value || !focusedStates.value.length) return '0 0 800 410'
+  const padding = 105
+  let left = Math.min(...focusedStates.value.map(s => s.x)) - padding
+  let right = Math.max(...focusedStates.value.map(s => s.x)) + padding
+  let top = Math.min(...focusedStates.value.map(s => s.y)) - padding
+  let bottom = Math.max(...focusedStates.value.map(s => s.y)) + padding
+  let width = right - left, height = bottom - top
+  const aspect = 800 / 410
+  if (width / height < aspect) { const expanded = height * aspect; left -= (expanded-width)/2; width = expanded }
+  else { const expanded = width / aspect; top -= (expanded-height)/2; height = expanded }
+  return `${left} ${top} ${width} ${height}`
+})
 const tuple = computed(() => `M = (Q, Σ, δ, q₀, F)\nQ = {${states.value.map(s=>s.id).join(', ')}}\nΣ = {${alphabet.value.join(', ')}}\nq₀ = ${start.value}\nF = {${finals.value.join(', ')}}\nδ = Transition function`)
 const statusColor = computed(() => result.value === 'ACCEPTED' ? 'accept' : 'reject')
 
@@ -93,10 +108,16 @@ function notify(msg){toast.value=msg;setTimeout(()=>toast.value='',2200)}
 function toggleFinal(id){const before=machineSnapshot();finals.value=finals.value.includes(id)?finals.value.filter(x=>x!==id):[...finals.value,id];rememberUndo(before)}
 function setStartState(id){const before=machineSnapshot();start.value=id;rememberUndo(before);notify(`${id} is now the start state`)}
 function startDrag(e,s){dragging.value={id:s.id,offsetX:e.clientX,offsetY:e.clientY,originX:s.x,originY:s.y,before:machineSnapshot()};selectedState.value=s.id;window.addEventListener('pointermove',moveDrag);window.addEventListener('pointerup',stopDrag,{once:true})}
-function moveDrag(e){if(!dragging.value||!diagram.value)return;const box=diagram.value.getBoundingClientRect(),scaleX=800/box.width,scaleY=410/box.height;const s=states.value.find(s=>s.id===dragging.value.id);if(s){s.x=Math.max(42,Math.min(758,dragging.value.originX+(e.clientX-dragging.value.offsetX)*scaleX));s.y=Math.max(42,Math.min(368,dragging.value.originY+(e.clientY-dragging.value.offsetY)*scaleY))}}
+function moveDrag(e){if(!dragging.value||!diagram.value)return;const box=diagram.value.getBoundingClientRect(),bounds=diagramViewBox.value.split(' ').map(Number),scaleX=bounds[2]/box.width,scaleY=bounds[3]/box.height;const s=states.value.find(s=>s.id===dragging.value.id);if(s){s.x=Math.max(42,Math.min(758,dragging.value.originX+(e.clientX-dragging.value.offsetX)*scaleX));s.y=Math.max(42,Math.min(368,dragging.value.originY+(e.clientY-dragging.value.offsetY)*scaleY))}}
 function stopDrag(){const before=dragging.value?.before;dragging.value=null;window.removeEventListener('pointermove',moveDrag);if(before)rememberUndo(before)}
 function exportJson(){const blob=new Blob([JSON.stringify({states:states.value,alphabet:alphabet.value,transitions:transitions.value,start:start.value,finals:finals.value},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='my-nfa.json';a.click();URL.revokeObjectURL(a.href);notify('NFA exported')}
 function reset(){result.value=null;stepTrace.value=[]}
+function toggleLegendFocus(mode){
+  if (mode === 'accepting' && finals.value.length === 0) return notify('Mark a state as accepting first')
+  focusMode.value = focusMode.value === mode ? null : mode
+  zoom.value = 1
+  selectedState.value = focusMode.value === 'start' ? start.value : null
+}
 async function expandDiagram(){
   diagramExpanded.value=true
   if(window.matchMedia('(max-width: 640px)').matches){
@@ -147,10 +168,10 @@ onBeforeUnmount(()=>document.removeEventListener('fullscreenchange',onFullscreen
             <div class="diagram-wrap" ref="diagram">
               <div v-if="showDiagramGrid" class="diagram-grid"></div>
               <button class="diagram-add-state" @click="addState"><Plus :size="15"/> Add state</button>
-              <svg class="diagram-svg" viewBox="0 0 800 410" preserveAspectRatio="xMidYMid meet" :style="{transform:`scale(${zoom})`}">
+              <svg class="diagram-svg" :viewBox="diagramViewBox" preserveAspectRatio="xMidYMid meet" :style="{transform:`scale(${zoom})`}">
                 <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#9aa3b3"/></marker><marker id="startArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#ff805f"/></marker></defs>
                 <g v-for="(t,i) in transitions" :key="i"><path class="edge-path" :d="edgePath(t)" marker-end="url(#arrow)"/><g class="edge-label" :transform="`translate(${edgeLabel(t).x},${edgeLabel(t).y})`"><rect x="-13" y="-12" width="26" height="23" rx="7"/><text text-anchor="middle" dominant-baseline="central">{{t.symbol}}</text></g></g>
-                <g v-for="s in states" :key="s.id" class="state-group" :class="{'state-selected':selectedState===s.id,'state-active':highlightActiveStates&&stepTrace.length&&stepTrace.at(-1)?.states.includes(s.id)}" @pointerdown.stop="startDrag($event,s)" @click.stop="selectedState=s.id">
+                <g v-for="s in states" :key="s.id" class="state-group" :class="{'state-selected':selectedState===s.id,'state-legend-focus':focusedStates.some(target=>target.id===s.id),'state-active':highlightActiveStates&&stepTrace.length&&stepTrace.at(-1)?.states.includes(s.id)}" @pointerdown.stop="startDrag($event,s)" @click.stop="selectedState=s.id">
                   <line v-if="s.id===start" :x1="s.x-76" :y1="s.y" :x2="s.x-43" :y2="s.y" class="start-line" marker-end="url(#startArrow)"/>
                   <circle v-if="finals.includes(s.id)" :cx="s.x" :cy="s.y" r="37" class="final-ring"/><circle :cx="s.x" :cy="s.y" r="31" class="state-circle"/><text :x="s.x" :y="s.y+5" text-anchor="middle" class="state-label">{{s.id}}</text>
                   <foreignObject :x="s.x-57" :y="s.y-59" width="114" height="25" class="state-controls"><div xmlns="http://www.w3.org/1999/xhtml" class="state-control-row"><button @pointerdown.stop @click.stop="setStartState(s.id)">→ start</button><button @pointerdown.stop @click.stop="toggleFinal(s.id);notify('Final state updated')">{{finals.includes(s.id)?'★ final':'☆ final'}}</button><button title="Rename state" @pointerdown.stop @click.stop="openRenameState(s.id)"><Pencil :size="10"/></button><button class="delete-state" title="Delete state" @pointerdown.stop @click.stop="deleteState(s.id)"><Trash2 :size="11"/></button></div></foreignObject>
@@ -160,7 +181,7 @@ onBeforeUnmount(()=>document.removeEventListener('fullscreenchange',onFullscreen
               <div class="zoom-controls"><button @click="zoom=Math.min(1.3,zoom+.1)">+</button><span>{{Math.round(zoom*100)}}%</span><button @click="zoom=Math.max(.7,zoom-.1)">−</button><button title="Reset zoom" @click="zoom=1"><RotateCcw :size="12"/></button></div>
               <div class="diagram-hint"><span class="hint-dot"></span> {{states.length}} states <span class="hint-sep">·</span> {{transitions.length}} transitions</div>
             </div>
-            <div class="diagram-footer"><div class="legend-item"><span class="legend-start">→</span><span>Start state</span></div><div class="legend-item"><span class="legend-final"></span><span>Accepting state</span></div><div class="legend-item"><span class="legend-edge">→</span><span>Transition</span></div><button class="add-transition-link" @click="showAddTransition=true"><CirclePlus :size="14"/> Add transition</button></div>
+            <div class="diagram-footer"><button class="legend-item legend-focus-button" :class="{'legend-focus-active':focusMode==='start'}" :aria-pressed="focusMode==='start'" title="Focus on the start state; click again to reset" @click="toggleLegendFocus('start')"><span class="legend-start">→</span><span>Start state</span></button><button class="legend-item legend-focus-button" :class="{'legend-focus-active':focusMode==='accepting'}" :aria-pressed="focusMode==='accepting'" title="Focus on accepting states; click again to reset" @click="toggleLegendFocus('accepting')"><span class="legend-final"></span><span>Accepting state</span></button><div class="legend-item"><span class="legend-edge">→</span><span>Transition</span></div><button class="add-transition-link" @click="showAddTransition=true"><CirclePlus :size="14"/> Add transition</button></div>
           </section>
 
           <section class="card simulator-card"><div class="card-top"><div><div class="section-title"><span class="sim-title-icon"><Activity :size="15"/></span> String simulator</div><div class="section-subtitle">Run an input through your NFA</div></div><button class="dots-button" @click="reset"><RotateCcw :size="15"/></button></div>

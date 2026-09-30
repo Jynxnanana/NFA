@@ -1,5 +1,19 @@
 /* Small-screen layout: use the full viewport width instead of a narrow icon rail. */
 .diagram-head-tools { display: flex; align-items: center; gap: 3px; }
+.legend-focus-button {
+  min-height: 28px;
+  padding: 0 5px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.legend-focus-button:hover,
+.legend-focus-button.legend-focus-active { background: #fff1ed; color: #df7657; }
+.state-legend-focus .state-circle { stroke: #ff805f; stroke-width: 3; filter: drop-shadow(0 0 7px #ff805f88); }
+.state-legend-focus .final-ring { stroke: #ff805f; stroke-width: 2.5; }
 .diagram-history-button {
   width: 30px;
   height: 30px;
@@ -60,6 +74,8 @@
 .dark-mode .diagram-history-button:hover:not(:disabled) { background: #303641; color: #ff987c; }
 .dark-mode .diagram-card.diagram-expanded .card-top,
 .dark-mode .diagram-card.diagram-expanded .diagram-footer { background: #20242d; }
+.dark-mode .legend-focus-button:hover,
+.dark-mode .legend-focus-button.legend-focus-active { background: #392b2c; color: #ff987c; }
 .settings-options { display: flex; flex-direction: column; margin-top: 18px; }
 .settings-option { min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid #eceef1; }
 .settings-option > span { display: flex; flex-direction: column; gap: 4px; }
