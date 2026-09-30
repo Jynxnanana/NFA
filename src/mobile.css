@@ -1,5 +1,6 @@
 /* Small-screen layout: use the full viewport width instead of a narrow icon rail. */
 .diagram-head-tools { display: flex; align-items: center; gap: 3px; }
+.diagram-wrap { touch-action: none; }
 .legend-focus-button {
   min-height: 28px;
   padding: 0 5px;
