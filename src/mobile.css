@@ -2,6 +2,21 @@
 .diagram-head-tools { display: flex; align-items: center; gap: 3px; }
 .diagram-wrap { touch-action: none; cursor: grab; }
 .diagram-wrap:active { cursor: grabbing; }
+.diagram-add-state-action {
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 6px;
+  background: #ff805f;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.diagram-add-state-action:hover { background: #f37756; }
 .legend-focus-button {
   min-height: 28px;
   padding: 0 5px;
@@ -76,6 +91,7 @@
 .dark-mode .diagram-history-button:hover:not(:disabled) { background: #303641; color: #ff987c; }
 .dark-mode .diagram-card.diagram-expanded .card-top,
 .dark-mode .diagram-card.diagram-expanded .diagram-footer { background: #20242d; }
+.dark-mode .diagram-add-state-action { background: #ff805f; color: #fff; }
 .dark-mode .legend-focus-button:hover,
 .dark-mode .legend-focus-button.legend-focus-active { background: #392b2c; color: #ff987c; }
 .settings-options { display: flex; flex-direction: column; margin-top: 18px; }
