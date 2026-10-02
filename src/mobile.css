@@ -170,6 +170,23 @@
 .batch-status.accepted { color: #50976b; }.batch-status.rejected { color: #c36d59; }.batch-status.invalid { color: #a064a3; }
 .batch-empty { padding: 12px 0 0; color: #9ca3ae; font-size: 9px; }
 .examples-modal { width: min(520px,100%); }
+.guide-modal { width: min(740px,100%); max-height: min(88vh,860px); overflow-y: auto; }
+.guide-eyebrow { display: block; margin-bottom: 6px; color: #dd7a5b; font-size: 9px; font-weight: 700; letter-spacing: 1px; }
+.guide-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; margin-top: 19px; }
+.guide-step { display: grid; grid-template-columns: 28px minmax(0,1fr); align-content: start; gap: 9px; min-height: 104px; padding: 12px; border: 1px solid #eceef1; border-radius: 7px; background: #fcfcfd; }
+.guide-number { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 7px; background: #fff1ed; color: #df7657; font: 700 12px 'Space Grotesk'; }
+.guide-tip-icon { color: #7588ba; background: #eef2fb; }
+.guide-step h3 { margin: 1px 0 5px; color: #3b4350; font-size: 11px; font-weight: 700; }
+.guide-step p { margin: 0; color: #78818e; font-size: 10px; line-height: 1.55; }
+.guide-step p strong { color: #555e6b; font-weight: 700; }
+.guide-actions { display: flex; justify-content: flex-end; margin-top: 15px; }
+.dark-mode .guide-eyebrow { color: #ff987c; }
+.dark-mode .guide-step { background: #252a34; border-color: #39404c; }
+.dark-mode .guide-number { background: #392b2c; color: #ff987c; }
+.dark-mode .guide-tip-icon { color: #b6c4eb; background: #2c3342; }
+.dark-mode .guide-step h3 { color: #e0e4eb; }
+.dark-mode .guide-step p { color: #aab2bf; }
+.dark-mode .guide-step p strong { color: #d3d8e1; }
 .example-list { display: flex; flex-direction: column; gap: 7px; margin-top: 18px; }
 .example-card { display: grid; grid-template-columns: 42px 1fr 16px; align-items: center; gap: 10px; width: 100%; padding: 10px; border: 1px solid #eceef1; border-radius: 7px; background: #fff; text-align: left; }
 .example-card:hover { border-color: #f1b29f; background: #fffaf8; }
@@ -479,6 +496,13 @@
   .tuple-content pre { font-size: 12px; }
   .tuple-note { font-size: 11px; line-height: 1.45; }
   .page-footer { font-size: 9px; }
+
+  .guide-modal { max-height: calc(100dvh - 30px); padding: 16px; }
+  .guide-grid { grid-template-columns: 1fr; gap: 8px; margin-top: 15px; }
+  .guide-step { min-height: 0; padding: 11px; }
+  .guide-step h3 { font-size: 13px; }
+  .guide-step p { font-size: 12px; line-height: 1.5; }
+  .guide-eyebrow { font-size: 10px; }
 
   .modal-heading h2 { font-size: 19px; }
   .modal-heading p { font-size: 12px; line-height: 1.45; }
