@@ -211,6 +211,8 @@
 .dark-mode .example-symbol { background: #392b2c; color: #ff987c; }
 .dark-mode .example-card strong { color: #e0e4eb; }
 .dark-mode .example-card small { color: #9aa3b2; }
+.brand-mark { width: 42px; height: 42px; flex: 0 0 42px; overflow: hidden; border: 1px solid #e7eaf0; border-radius: 50%; background: #fff; box-shadow: 0 2px 7px #18202d14; }
+.brand-logo-image { display: block; width: 136%; height: 136%; max-width: none; object-fit: cover; object-position: center; }
 .mobile-brand { width: 100%; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .mobile-menu-indicator { display: none; }
 .mobile-drawer-backdrop,.mobile-drawer { display: none; }
@@ -301,6 +303,7 @@
   .dark-mode .drawer-footer-button { color: #aab2bf; }
   .dark-mode .drawer-footer-button:hover { background: #303641; color: #ff987c; }
   .dark-mode .mobile-drawer-footer { border-top-color: #303641; }
+  .dark-mode .brand-mark { background: #fff; box-shadow: 0 2px 8px #0006; }
 
   .main-content {
     margin-left: 0;

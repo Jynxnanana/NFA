@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { Activity, ArrowRight, Braces, Check, ChevronDown, CircleHelp, CirclePlus, Code2, Copy, Download, FileJson2, GitBranch, Image, Keyboard, Layers2, Maximize2, Menu, Minimize2, MoreHorizontal, Moon, Pencil, Play, Plus, Redo2, RotateCcw, Settings2, Sparkles, Sun, Trash2, Undo2, Upload, X, Zap } from 'lucide-vue-next'
+import { Activity, ArrowRight, Braces, Check, ChevronDown, CircleHelp, CirclePlus, Code2, Copy, Download, FileJson2, Image, Keyboard, Layers2, Maximize2, Menu, Minimize2, MoreHorizontal, Moon, Pencil, Play, Plus, Redo2, RotateCcw, Settings2, Sparkles, Sun, Trash2, Undo2, Upload, X, Zap } from 'lucide-vue-next'
 import { runNfa, validateMachine } from './nfa.js'
 
 const MACHINE_STORAGE_KEY = 'orbit-nfa-machine-v1'
@@ -229,7 +229,7 @@ onBeforeUnmount(()=>document.removeEventListener('fullscreenchange',onFullscreen
 <template>
   <div class="app-shell" :class="{'dark-mode':isDark}">
     <aside class="sidebar">
-      <button class="brand mobile-brand" type="button" title="Open navigation" aria-label="Open navigation menu" aria-controls="mobile-navigation-drawer" :aria-expanded="mobileDrawerOpen" @click="toggleMobileDrawer"><div class="brand-mark"><GitBranch :size="18" /></div><div><div class="brand-name">orbit<span>.</span></div><div class="brand-caption">AUTOMATA STUDIO</div></div><Menu :size="17" class="mobile-menu-indicator"/></button>
+      <button class="brand mobile-brand" type="button" title="Open navigation" aria-label="Open navigation menu" aria-controls="mobile-navigation-drawer" :aria-expanded="mobileDrawerOpen" @click="toggleMobileDrawer"><div class="brand-mark"><img class="brand-logo-image" src="/chcci%20logo.jpg" alt="Concepcion Holy Cross College logo"/></div><div><div class="brand-name">orbit<span>.</span></div><div class="brand-caption">AUTOMATA STUDIO</div></div><Menu :size="17" class="mobile-menu-indicator"/></button>
       <div class="workspace-label">WORKSPACE</div>
       <button class="workspace-select"><div class="workspace-avatar">A</div><span>Automata Lab</span><ChevronDown :size="14" /></button>
       <div class="nav-heading">BUILD</div>
