@@ -239,7 +239,7 @@ onBeforeUnmount(()=>document.removeEventListener('fullscreenchange',onFullscreen
       <div class="nav-heading tools-heading">TOOLS</div>
       <button class="nav-item" @click="focusSimulator"><Play :size="16"/><span>String simulator</span><span class="side-badge">NEW</span></button>
       <button class="nav-item" @click="exportJson"><FileJson2 :size="17"/><span>Export as JSON</span></button>
-      <div class="sidebar-bottom"><div class="help-card"><div class="help-icon"><CircleHelp :size="17"/></div><div><strong>New to NFAs?</strong><p>Read the quick guide and get started.</p><button @click="openGuide">Explore guide <ArrowRight :size="12"/></button></div></div><div class="user-row"><div class="user-avatar">M</div><div class="user-meta"><strong>My workspace</strong><span>Free plan</span></div><MoreHorizontal :size="18" class="user-more"/></div></div>
+      <div class="sidebar-bottom"><div class="help-card"><div class="help-icon"><CircleHelp :size="17"/></div><div><strong>New to NFAs?</strong><p>Read the quick guide and get started.</p><button @click="openGuide">Explore guide <ArrowRight :size="12"/></button></div></div><div class="user-row"><div class="user-avatar">M</div><div class="user-meta"><strong>My workspace</strong></div><MoreHorizontal :size="18" class="user-more"/></div></div>
     </aside>
 
     <div v-if="mobileDrawerOpen" class="mobile-drawer-backdrop" @click="closeMobileDrawer" @keydown.esc.window="closeMobileDrawer"></div>
