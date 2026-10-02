@@ -211,8 +211,8 @@
 .dark-mode .example-symbol { background: #392b2c; color: #ff987c; }
 .dark-mode .example-card strong { color: #e0e4eb; }
 .dark-mode .example-card small { color: #9aa3b2; }
-.brand-mark { width: 42px; height: 42px; flex: 0 0 42px; overflow: hidden; border: 1px solid #e7eaf0; border-radius: 50%; background: #fff; box-shadow: 0 2px 7px #18202d14; }
-.brand-logo-image { display: block; width: 136%; height: 136%; max-width: none; object-fit: cover; object-position: center; }
+.brand-mark { width: 44px; height: 44px; flex: 0 0 44px; overflow: hidden; border: 1px solid #e7eaf0; border-radius: 50%; background: #fff; box-shadow: 0 2px 7px #18202d14; }
+.brand-logo-image { display: block; width: 100%; height: 100%; max-width: none; object-fit: contain; object-position: center; }
 .mobile-brand { width: 100%; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .mobile-menu-indicator { display: none; }
 .mobile-drawer-backdrop,.mobile-drawer { display: none; }
