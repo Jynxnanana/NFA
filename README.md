@@ -20,7 +20,6 @@ Open the local URL printed by Vite (usually `http://localhost:5173`). Create a p
 - Undo and redo edits to the automaton.
 - Simulate strings one step at a time and see the active state set.
 - Run several input strings together with batch tests.
-- Convert an NFA to a DFA using subset construction and view the resulting transition table.
 - Load example NFAs for common languages.
 - Import and export automata as JSON; the current machine is also saved in the browser.
 - Export the state diagram as SVG or PNG.
@@ -29,7 +28,7 @@ Open the local URL printed by Vite (usually `http://localhost:5173`). Create a p
 
 ## How the stack is used
 
-- **JavaScript** stores automata and implements validation, epsilon closure, simulation, and NFA-to-DFA conversion.
+- **JavaScript** stores automata and implements validation, epsilon closure, and NFA simulation.
 - **Vue 3** renders the interactive editor and keeps the diagram, transition table, and formal definition in sync.
 - **Tailwind CSS 4** is configured through the Vite plugin; custom CSS provides the editor layout, diagram, and responsive behavior.
 - **Node.js and Vite** run the development server and create the production build.

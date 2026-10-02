@@ -155,10 +155,10 @@
 .trace-current .trace-step { color: #e47757; }
 .diagram-export-button { height: 27px; display: inline-flex; align-items: center; gap: 4px; padding: 0 7px; border: 1px solid #e8eaee; border-radius: 5px; background: #fff; color: #77808d; font-size: 8px; font-weight: 700; }
 .diagram-export-button:hover { border-color: #f0b19f; color: #dc795b; }
-.batch-pane,.dfa-pane { padding: 18px; }
-.batch-intro,.dfa-intro { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
-.batch-intro strong,.dfa-intro strong { color: #39414f; font-size: 12px; }
-.batch-intro p,.dfa-intro p { margin: 4px 0 0; color: #959ca8; font-size: 9px; line-height: 1.5; }
+.batch-pane { padding: 18px; }
+.batch-intro { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
+.batch-intro strong { color: #39414f; font-size: 12px; }
+.batch-intro p { margin: 4px 0 0; color: #959ca8; font-size: 9px; line-height: 1.5; }
 .batch-input { width: 100%; min-height: 100px; resize: vertical; border: 1px solid #e6e9ed; border-radius: 6px; outline: none; padding: 10px 12px; color: #4f5865; font: 12px/1.7 'Space Grotesk'; }
 .batch-input:focus { border-color: #f0a18a; }
 .batch-results { margin-top: 14px; border: 1px solid #eceef1; border-radius: 6px; overflow: hidden; }
@@ -169,10 +169,6 @@
 .batch-status { font-size: 9px; font-weight: 700; }
 .batch-status.accepted { color: #50976b; }.batch-status.rejected { color: #c36d59; }.batch-status.invalid { color: #a064a3; }
 .batch-empty { padding: 12px 0 0; color: #9ca3ae; font-size: 9px; }
-.dfa-count { flex: 0 0 auto; padding: 5px 8px; border-radius: 5px; background: #edf8f1; color: #57956e; font-size: 9px; font-weight: 700; }
-.dfa-warning { margin: 0 0 12px; padding: 9px 11px; border-radius: 5px; background: #fff7e9; color: #9b7542; font-size: 10px; }
-.dfa-table th:first-child { min-width: 90px; }.dfa-table th:nth-child(2) { min-width: 170px; }
-.subset-cell { color: #5e6877; font: 10px 'Space Grotesk'; white-space: nowrap; }
 .examples-modal { width: min(520px,100%); }
 .example-list { display: flex; flex-direction: column; gap: 7px; margin-top: 18px; }
 .example-card { display: grid; grid-template-columns: 42px 1fr 16px; align-items: center; gap: 10px; width: 100%; padding: 10px; border: 1px solid #eceef1; border-radius: 7px; background: #fff; text-align: left; }
@@ -186,14 +182,13 @@
 .dark-mode .examples-trigger svg { color: #ff987c; }
 .dark-mode .step-controls span { color: #a2aab7; }
 .dark-mode .trace-current { background: #392b2c; }
-.dark-mode .batch-intro strong,.dark-mode .dfa-intro strong { color: #e0e4eb; }
-.dark-mode .batch-intro p,.dark-mode .dfa-intro p,.dark-mode .batch-empty { color: #9aa3b2; }
+.dark-mode .batch-intro strong { color: #e0e4eb; }
+.dark-mode .batch-intro p,.dark-mode .batch-empty { color: #9aa3b2; }
 .dark-mode .batch-input { background: #252a34; border-color: #39404c; color: #d3d8e1; }
 .dark-mode .batch-results { border-color: #303641; }
 .dark-mode .batch-results-head { background: #1a1e26; color: #9aa3b2; }
 .dark-mode .batch-result-row { border-top-color: #303641; }
-.dark-mode .batch-result-row code,.dark-mode .batch-ending,.dark-mode .subset-cell { color: #c4cbd6; }
-.dark-mode .dfa-warning { background: #352f25; color: #e2c184; }
+.dark-mode .batch-result-row code,.dark-mode .batch-ending { color: #c4cbd6; }
 .dark-mode .example-card { background: #252a34; border-color: #39404c; }
 .dark-mode .example-card:hover { background: #30292a; border-color: #75473c; }
 .dark-mode .example-symbol { background: #392b2c; color: #ff987c; }
@@ -437,7 +432,7 @@
   .transition-state-name { font-size: 11px; }
   .transition-symbol { font-size: 11px; }
   .rename-label { font-size: 10px; }
-  .batch-pane,.dfa-pane { padding: 13px 10px; }
+  .batch-pane { padding: 13px 10px; }
   .batch-intro { align-items: flex-start; flex-direction: column; }
   .batch-intro .confirm-button { align-self: flex-end; }
   .batch-results-head,.batch-result-row { grid-template-columns: .8fr 1fr 1.2fr; gap: 5px; padding: 8px; }
