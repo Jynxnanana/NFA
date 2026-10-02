@@ -1,4 +1,4 @@
-# Orbit NFA Automata Studio
+# CHCCI NFA Automata Lab
 
 A responsive web app for creating, visualizing, and studying nondeterministic finite automata (NFAs). It is built with Vue 3, JavaScript, Vite, and Tailwind CSS 4.
 
