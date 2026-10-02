@@ -1,32 +1,35 @@
-# Orbit — NFA Automata Studio
+# Orbit NFA Automata Studio
 
-A small web app for building and simulating nondeterministic finite automata (NFAs). This is a class project starter built with Vue, JavaScript, Vite, and Tailwind CSS.
+A responsive web app for creating, visualizing, and studying nondeterministic finite automata (NFAs). It is built with Vue 3, JavaScript, Vite, and Tailwind CSS 4.
 
 ## Run locally
 
-Install [Node.js](https://nodejs.org/) first. In a terminal opened in this project folder, run:
+Install [Node.js](https://nodejs.org/), then run these commands in the project folder:
 
 ```sh
 npm install
 npm run dev
 ```
 
-Open the local address printed by Vite (usually `http://localhost:5173`). To create a production build, run `npm run build`.
+Open the local URL printed by Vite (usually `http://localhost:5173`). Create a production build with `npm run build`.
 
-## Included
+## Features
 
-- Add and remove states; drag states around the diagram.
-- Choose the start state and toggle accepting/final states.
-- Add alphabet symbols and transitions, including ε-transitions.
-- View a transition table and the formal definition `M = (Q, Σ, δ, q₀, F)`.
-- Simulate an input string with ε-closure and a step trace.
-- Export the current automaton as JSON.
+- Add, rename, move, and delete states; choose start and accepting states.
+- Create and edit transitions, including epsilon transitions.
+- Undo and redo edits to the automaton.
+- Simulate strings one step at a time and see the active state set.
+- Run several input strings together with batch tests.
+- Convert an NFA to a DFA using subset construction and view the resulting transition table.
+- Load example NFAs for common languages.
+- Import and export automata as JSON; the current machine is also saved in the browser.
+- Export the state diagram as SVG or PNG.
+- Use the editor on phones with landscape fullscreen, touch pan, and pinch zoom.
+- Switch between light and dark themes.
 
 ## How the stack is used
 
-- **JavaScript** contains the automaton data and simulation logic.
-- **Vue 3** renders the interactive editor and keeps the diagram, table, and definition in sync.
-- **Tailwind CSS 4** is wired through the Vite plugin; the workspace also uses custom CSS for its visual design and diagram.
-- **Node.js and Vite** run the local development server and produce the web build.
-
-The starter opens with an example machine. You can modify it in the UI to demonstrate your own NFA.
+- **JavaScript** stores automata and implements validation, epsilon closure, simulation, and NFA-to-DFA conversion.
+- **Vue 3** renders the interactive editor and keeps the diagram, transition table, and formal definition in sync.
+- **Tailwind CSS 4** is configured through the Vite plugin; custom CSS provides the editor layout, diagram, and responsive behavior.
+- **Node.js and Vite** run the development server and create the production build.
