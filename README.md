@@ -23,7 +23,7 @@ Open the local URL printed by Vite (usually `http://localhost:5173`). Create a p
 - Load example NFAs for common languages.
 - Import and export automata as JSON; the current machine is also saved in the browser.
 - Export the state diagram as SVG or PNG.
-- Use the editor on phones with landscape fullscreen, touch pan, and pinch zoom.
+- Use the editor on phones with a navigation drawer, landscape fullscreen, touch pan, and pinch zoom.
 - Switch between light and dark themes.
 
 ## How the stack is used

@@ -194,6 +194,9 @@
 .dark-mode .example-symbol { background: #392b2c; color: #ff987c; }
 .dark-mode .example-card strong { color: #e0e4eb; }
 .dark-mode .example-card small { color: #9aa3b2; }
+.mobile-brand { width: 100%; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.mobile-menu-indicator { display: none; }
+.mobile-drawer-backdrop,.mobile-drawer { display: none; }
 
 @media (max-width: 640px) {
   .sidebar {
@@ -209,7 +212,11 @@
 
   .sidebar .brand {
     padding: 0;
+    width: 100%;
   }
+
+  .mobile-menu-indicator { display: block; margin-left: auto; color: #87909e; }
+  .mobile-brand:focus-visible { outline: 2px solid #ff805f; outline-offset: 3px; border-radius: 6px; }
 
   .sidebar .brand > div:nth-child(2) {
     display: block;
@@ -223,6 +230,60 @@
   .sidebar .sidebar-bottom {
     display: none;
   }
+
+  .mobile-drawer-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: #151923a8;
+    backdrop-filter: blur(2px);
+  }
+
+  .mobile-drawer {
+    display: flex;
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 31;
+    width: min(320px, 88vw);
+    height: 100vh;
+    height: 100dvh;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: max(18px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
+    background: #fff;
+    color: #303846;
+    box-shadow: 12px 0 36px #10182830;
+    animation: mobile-drawer-in .18s ease-out;
+  }
+
+  .mobile-drawer-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 4px 16px; }
+  .mobile-drawer-heading > div { display: flex; flex-direction: column; gap: 4px; }
+  .drawer-eyebrow { color: #a1a8b3; font-size: 9px; font-weight: 700; letter-spacing: 1px; }
+  .mobile-drawer-heading strong { color: #283140; font: 600 21px 'Space Grotesk'; }
+  .mobile-drawer-close { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid #e8eaee; border-radius: 8px; background: #fff; color: #727b89; }
+  .mobile-drawer-workspace { display: flex; align-items: center; gap: 9px; min-height: 48px; padding: 0 10px; border: 1px solid #eceef1; border-radius: 8px; color: #4a5361; font-size: 13px; font-weight: 600; }
+  .mobile-drawer-workspace .workspace-avatar { display: grid; }
+  .drawer-workspace-status { margin-left: auto; padding: 4px 7px; border-radius: 5px; background: #fff1ed; color: #dc795b; font-size: 9px; font-weight: 700; }
+  .mobile-drawer-section { margin: 22px 8px 7px; color: #9da5b1; font-size: 9px; font-weight: 700; letter-spacing: 1px; }
+  .mobile-drawer-link { width: 100%; min-height: 46px; display: flex; align-items: center; gap: 12px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; color: #737d8b; text-align: left; font-size: 13px; font-weight: 500; }
+  .mobile-drawer-link > svg:first-child { color: #8a94a2; flex: 0 0 auto; }
+  .mobile-drawer-link > span { flex: 1; }
+  .mobile-drawer-link:hover,.mobile-drawer-link.drawer-link-active { background: #fff1ed; color: #df7657; }
+  .mobile-drawer-link.drawer-link-active > svg:first-child,.mobile-drawer-link:hover > svg:first-child { color: #e67c5b; }
+  .drawer-link-arrow { margin-left: auto; color: #b1b7c0; }
+  .mobile-drawer-footer { display: flex; flex-direction: column; gap: 4px; margin-top: auto; padding-top: 18px; border-top: 1px solid #eceef1; }
+  .drawer-footer-button { min-height: 44px; display: flex; align-items: center; gap: 11px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; color: #737d8b; text-align: left; font-size: 12px; }
+  .drawer-footer-button:hover { background: #f5f6f8; color: #e67c5b; }
+  .dark-mode .mobile-drawer { background: #20242d; color: #e0e4eb; }
+  .dark-mode .mobile-drawer-heading strong { color: #e5e8ee; }
+  .dark-mode .mobile-drawer-close,.dark-mode .mobile-drawer-workspace { background: #252a34; border-color: #39404c; color: #d3d8e1; }
+  .dark-mode .mobile-drawer-link { color: #aab2bf; }
+  .dark-mode .mobile-drawer-link:hover,.dark-mode .mobile-drawer-link.drawer-link-active { background: #392b2c; color: #ff987c; }
+  .dark-mode .mobile-drawer-link:hover > svg:first-child,.dark-mode .mobile-drawer-link.drawer-link-active > svg:first-child { color: #ff987c; }
+  .dark-mode .drawer-footer-button { color: #aab2bf; }
+  .dark-mode .drawer-footer-button:hover { background: #303641; color: #ff987c; }
+  .dark-mode .mobile-drawer-footer { border-top-color: #303641; }
 
   .main-content {
     margin-left: 0;
@@ -341,6 +402,8 @@
   .dark-mode .diagram-expand-button { color: #a8b0bd; }
   .dark-mode .diagram-expand-button:hover { background: #303641; }
 }
+
+@keyframes mobile-drawer-in { from { opacity: .6; transform: translateX(-14px); } to { opacity: 1; transform: translateX(0); } }
 
 @media (max-width: 380px) {
   .top-actions .icon-button[title="Keyboard shortcuts"] {

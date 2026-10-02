@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { Activity, ArrowRight, Braces, Check, ChevronDown, CircleHelp, CirclePlus, Code2, Copy, Download, FileJson2, GitBranch, Image, Keyboard, Layers2, Maximize2, Minimize2, MoreHorizontal, Moon, Pencil, Play, Plus, Redo2, RotateCcw, Settings2, Sparkles, Sun, Trash2, Undo2, Upload, X, Zap } from 'lucide-vue-next'
+import { Activity, ArrowRight, Braces, Check, ChevronDown, CircleHelp, CirclePlus, Code2, Copy, Download, FileJson2, GitBranch, Image, Keyboard, Layers2, Maximize2, Menu, Minimize2, MoreHorizontal, Moon, Pencil, Play, Plus, Redo2, RotateCcw, Settings2, Sparkles, Sun, Trash2, Undo2, Upload, X, Zap } from 'lucide-vue-next'
 import { runNfa, validateMachine } from './nfa.js'
 
 const MACHINE_STORAGE_KEY = 'orbit-nfa-machine-v1'
@@ -24,6 +24,7 @@ const showAlphabetInput = ref(false), alphabetInput = ref('')
 const showSettings = ref(false)
 const importInput = ref(null), saveStatus = ref(restoredMachine ? 'Restored from this device' : 'Auto-saves on this device')
 const examplesOpen = ref(false), batchInput = ref('0101\n110\n001'), batchResults = ref([])
+const mobileDrawerOpen = ref(false)
 const activeTabOptions = ['Transition Table','Formal Definition','Batch Tests']
 const dragging = ref(null), diagram = ref(null), diagramCard = ref(null), diagramExpanded = ref(false), zoom = ref(1), toast = ref('')
 const focusMode = ref(null)
@@ -115,6 +116,15 @@ function advanceSimulation(){if(!stepTrace.value.length||simulationStep.value>=s
 function previousSimulationStep(){if(simulationStep.value>0){simulationStep.value-=1;result.value=null}}
 function runBatchTests(){batchResults.value=batchInput.value.split(/\r?\n/).filter(value=>value.length>0).map(input=>({input,...runNfa(machineSnapshot(),input)}))}
 function focusSimulator(){document.querySelector('.simulator-card')?.scrollIntoView({behavior:'smooth',block:'center'})}
+function toggleMobileDrawer(){if(window.matchMedia('(max-width: 640px)').matches)mobileDrawerOpen.value=!mobileDrawerOpen.value}
+function closeMobileDrawer(){mobileDrawerOpen.value=false}
+function goToDrawerTab(tab){activeTab.value=tab;closeMobileDrawer();requestAnimationFrame(()=>document.querySelector('.data-card')?.scrollIntoView({behavior:'smooth',block:'start'}))}
+function goToBuilder(){activeTab.value='Transition Table';closeMobileDrawer();window.scrollTo({top:0,behavior:'smooth'})}
+function openDrawerSimulator(){closeMobileDrawer();focusSimulator()}
+function openDrawerExamples(){closeMobileDrawer();examplesOpen.value=true}
+function importFromDrawer(){closeMobileDrawer();triggerImport()}
+function exportFromDrawer(){closeMobileDrawer();exportJson()}
+function openSettingsFromDrawer(){closeMobileDrawer();showSettings.value=true}
 function addState(){ const before=machineSnapshot();let n=0;while(states.value.some(s=>s.id===`q${n}`))n++;const id=`q${n}`;states.value.push({id,x:250+(n%3)*190,y:110+Math.floor(n/3)*120});rememberUndo(before);notify(`Added ${id}`) }
 function deleteState(id){ if(states.value.length<=1)return notify('Keep at least one state');const before=machineSnapshot();states.value=states.value.filter(s=>s.id!==id);transitions.value=transitions.value.filter(t=>t.from!==id&&t.to!==id);finals.value=finals.value.filter(f=>f!==id);if(start.value===id)start.value=states.value[0].id;selectedState.value=null;rememberUndo(before);reset();notify(`Deleted ${id}`) }
 function openTransitionEditor(index=null){editingTransitionIndex.value=index;newTransition.value=index===null?{from:states.value[0]?.id??'',to:states.value[0]?.id??'',symbol:alphabet.value[0]??'ε'}:{...transitions.value[index]};showAddTransition.value=true}
@@ -217,7 +227,7 @@ onBeforeUnmount(()=>document.removeEventListener('fullscreenchange',onFullscreen
 <template>
   <div class="app-shell" :class="{'dark-mode':isDark}">
     <aside class="sidebar">
-      <div class="brand"><div class="brand-mark"><GitBranch :size="18" /></div><div><div class="brand-name">orbit<span>.</span></div><div class="brand-caption">AUTOMATA STUDIO</div></div></div>
+      <button class="brand mobile-brand" type="button" title="Open navigation" aria-label="Open navigation menu" aria-controls="mobile-navigation-drawer" :aria-expanded="mobileDrawerOpen" @click="toggleMobileDrawer"><div class="brand-mark"><GitBranch :size="18" /></div><div><div class="brand-name">orbit<span>.</span></div><div class="brand-caption">AUTOMATA STUDIO</div></div><Menu :size="17" class="mobile-menu-indicator"/></button>
       <div class="workspace-label">WORKSPACE</div>
       <button class="workspace-select"><div class="workspace-avatar">A</div><span>Automata Lab</span><ChevronDown :size="14" /></button>
       <div class="nav-heading">BUILD</div>
@@ -228,6 +238,24 @@ onBeforeUnmount(()=>document.removeEventListener('fullscreenchange',onFullscreen
       <button class="nav-item" @click="focusSimulator"><Play :size="16"/><span>String simulator</span><span class="side-badge">NEW</span></button>
       <button class="nav-item" @click="exportJson"><FileJson2 :size="17"/><span>Export as JSON</span></button>
       <div class="sidebar-bottom"><div class="help-card"><div class="help-icon"><CircleHelp :size="17"/></div><div><strong>New to NFAs?</strong><p>Read the quick guide and get started.</p><button @click="notify('An NFA accepts a string when at least one path ends in a final state.')">Explore guide <ArrowRight :size="12"/></button></div></div><div class="user-row"><div class="user-avatar">M</div><div class="user-meta"><strong>My workspace</strong><span>Free plan</span></div><MoreHorizontal :size="18" class="user-more"/></div></div>
+    </aside>
+
+    <div v-if="mobileDrawerOpen" class="mobile-drawer-backdrop" @click="closeMobileDrawer" @keydown.esc.window="closeMobileDrawer"></div>
+    <aside v-if="mobileDrawerOpen" id="mobile-navigation-drawer" class="mobile-drawer" aria-label="Navigation drawer">
+      <div class="mobile-drawer-heading"><div><span class="drawer-eyebrow">ORBIT WORKSPACE</span><strong>Find a tool</strong></div><button class="mobile-drawer-close" type="button" aria-label="Close navigation" @click="closeMobileDrawer"><X :size="19"/></button></div>
+      <div class="mobile-drawer-workspace"><span class="workspace-avatar">A</span><span>Automata Lab</span><span class="drawer-workspace-status">NFA</span></div>
+      <div class="mobile-drawer-section">BUILD</div>
+      <button class="mobile-drawer-link" @click="goToBuilder"><Braces :size="18"/><span>NFA Builder</span><ArrowRight :size="15" class="drawer-link-arrow"/></button>
+      <button class="mobile-drawer-link" :class="{'drawer-link-active':activeTab==='Transition Table'}" @click="goToDrawerTab('Transition Table')"><Layers2 :size="18"/><span>Transition table</span><ArrowRight :size="15" class="drawer-link-arrow"/></button>
+      <button class="mobile-drawer-link" :class="{'drawer-link-active':activeTab==='Formal Definition'}" @click="goToDrawerTab('Formal Definition')"><Code2 :size="18"/><span>Formal definition</span><ArrowRight :size="15" class="drawer-link-arrow"/></button>
+      <div class="mobile-drawer-section">TOOLS</div>
+      <button class="mobile-drawer-link" @click="openDrawerSimulator"><Play :size="18"/><span>String simulator</span><ArrowRight :size="15" class="drawer-link-arrow"/></button>
+      <button class="mobile-drawer-link" :class="{'drawer-link-active':activeTab==='Batch Tests'}" @click="goToDrawerTab('Batch Tests')"><Activity :size="18"/><span>Batch tests</span><ArrowRight :size="15" class="drawer-link-arrow"/></button>
+      <button class="mobile-drawer-link" @click="openDrawerExamples"><Sparkles :size="18"/><span>Example NFAs</span><ArrowRight :size="15" class="drawer-link-arrow"/></button>
+      <div class="mobile-drawer-section">FILES</div>
+      <button class="mobile-drawer-link" @click="importFromDrawer"><Upload :size="18"/><span>Import NFA JSON</span></button>
+      <button class="mobile-drawer-link" @click="exportFromDrawer"><Download :size="18"/><span>Export NFA JSON</span></button>
+      <div class="mobile-drawer-footer"><button class="drawer-footer-button" @click="isDark=!isDark"><Sun v-if="isDark" :size="17"/><Moon v-else :size="17"/><span>{{isDark?'Switch to light mode':'Switch to dark mode'}}</span></button><button class="drawer-footer-button" @click="openSettingsFromDrawer"><Settings2 :size="17"/><span>Settings</span></button></div>
     </aside>
 
     <main class="main-content">
