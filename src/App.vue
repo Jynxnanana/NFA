@@ -229,7 +229,7 @@ onBeforeUnmount(()=>document.removeEventListener('fullscreenchange',onFullscreen
 <template>
   <div class="app-shell" :class="{'dark-mode':isDark}">
     <aside class="sidebar">
-      <button class="brand mobile-brand" type="button" title="Open navigation" aria-label="Open navigation menu" aria-controls="mobile-navigation-drawer" :aria-expanded="mobileDrawerOpen" @click="toggleMobileDrawer"><div class="brand-mark"><img class="brand-logo-image" src="/chcci-logo-crop.jpg" alt="Concepcion Holy Cross College logo"/></div><div><div class="brand-name">CHCCI</div><div class="brand-caption">NFA AUTOMATA LAB</div></div><Menu :size="17" class="mobile-menu-indicator"/></button>
+      <button class="brand mobile-brand" type="button" title="Open navigation" aria-label="Open navigation menu" aria-controls="mobile-navigation-drawer" :aria-expanded="mobileDrawerOpen" @click="toggleMobileDrawer"><div class="brand-mark"><img class="brand-logo-image" src="/chcci-logo-crop.jpg" alt="Concepcion Holy Cross College logo"/></div><div><div class="brand-name">CHCCI</div><div class="brand-caption">NFA LAB</div></div><Menu :size="17" class="mobile-menu-indicator"/></button>
       <div class="workspace-label">WORKSPACE</div>
       <button class="workspace-select"><div class="workspace-avatar">A</div><span>Automata Lab</span><ChevronDown :size="14" /></button>
       <div class="nav-heading">BUILD</div>
