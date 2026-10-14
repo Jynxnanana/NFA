@@ -51,18 +51,86 @@ export function epsilonClosure(seed, transitions) {
 export function runNfa(machine, input) {
   const symbols = [...input]
   let active = epsilonClosure([machine.start], machine.transitions)
-  const trace = [{ position: 0, symbol: EPSILON, states: [...active] }]
+  const epsilonEdgesIn = states => {
+    const included = new Set(states)
+    return machine.transitions.filter(edge => edge.symbol === EPSILON && included.has(edge.from) && included.has(edge.to))
+  }
+  const trace = [{ position: 0, symbol: EPSILON, states: [...active], transitions: epsilonEdgesIn(active) }]
   for (let index = 0; index < symbols.length; index += 1) {
     const symbol = symbols[index]
     if (!machine.alphabet.includes(symbol)) {
       return { valid: false, accepted: false, errorIndex: index, invalidSymbol: symbol, trace, endStates: active }
     }
     const moved = new Set()
+    const followedEdges = []
     for (const state of active) {
-      for (const edge of machine.transitions) if (edge.from === state && edge.symbol === symbol) moved.add(edge.to)
+      for (const edge of machine.transitions) {
+        if (edge.from === state && edge.symbol === symbol) {
+          moved.add(edge.to)
+          followedEdges.push(edge)
+        }
+      }
     }
     active = epsilonClosure([...moved], machine.transitions)
-    trace.push({ position: index + 1, symbol, states: [...active] })
+    trace.push({ position: index + 1, symbol, states: [...active], transitions: [...followedEdges, ...epsilonEdgesIn(active)] })
   }
-  return { valid: true, accepted: active.some(state => machine.finals.includes(state)), trace, endStates: active }
+
+  const viableStates = trace.map(() => new Set())
+  const lastStep = trace.length - 1
+  viableStates[lastStep] = new Set(trace[lastStep].states.filter(state => machine.finals.includes(state)))
+  trace[lastStep].acceptingStates = [...viableStates[lastStep]]
+
+  const reverseEpsilonClosure = (seed, edges) => {
+    const found = new Set(seed)
+    const pending = [...seed]
+    while (pending.length) {
+      const current = pending.pop()
+      for (const edge of edges) {
+        if (edge.to === current && !found.has(edge.from)) {
+          found.add(edge.from)
+          pending.push(edge.from)
+        }
+      }
+    }
+    return found
+  }
+  const forwardEpsilonClosure = (seed, edges) => {
+    const found = new Set(seed)
+    const pending = [...seed]
+    while (pending.length) {
+      const current = pending.pop()
+      for (const edge of edges) {
+        if (edge.from === current && !found.has(edge.to)) {
+          found.add(edge.to)
+          pending.push(edge.to)
+        }
+      }
+    }
+    return found
+  }
+
+  for (let index = lastStep - 1; index >= 0; index -= 1) {
+    const before = new Set(trace[index].states)
+    const after = new Set(trace[index + 1].states)
+    const afterEpsilonEdges = machine.transitions.filter(edge => edge.symbol === EPSILON && after.has(edge.from) && after.has(edge.to))
+    const canReachViableAfter = reverseEpsilonClosure(viableStates[index + 1], afterEpsilonEdges)
+    const inputEdges = machine.transitions.filter(edge => edge.symbol === symbols[index] && before.has(edge.from) && after.has(edge.to) && canReachViableAfter.has(edge.to))
+    const beforeEpsilonEdges = machine.transitions.filter(edge => edge.symbol === EPSILON && before.has(edge.from) && before.has(edge.to))
+
+    viableStates[index] = reverseEpsilonClosure(inputEdges.map(edge => edge.from), beforeEpsilonEdges)
+    trace[index].acceptingStates = [...viableStates[index]]
+
+    const reachableAfterInput = forwardEpsilonClosure(inputEdges.map(edge => edge.to), afterEpsilonEdges)
+    const acceptingEpsilonEdges = afterEpsilonEdges.filter(edge => reachableAfterInput.has(edge.from) && canReachViableAfter.has(edge.to))
+    trace[index + 1].acceptingTransitions = [...inputEdges, ...acceptingEpsilonEdges]
+  }
+
+  const initialStates = new Set(trace[0].states)
+  const initialEpsilonEdges = machine.transitions.filter(edge => edge.symbol === EPSILON && initialStates.has(edge.from) && initialStates.has(edge.to))
+  const reachableFromStart = forwardEpsilonClosure([machine.start], initialEpsilonEdges)
+  const canReachInitialViable = reverseEpsilonClosure(viableStates[0], initialEpsilonEdges)
+  trace[0].acceptingStates = [...viableStates[0]]
+  trace[0].acceptingTransitions = initialEpsilonEdges.filter(edge => reachableFromStart.has(edge.from) && canReachInitialViable.has(edge.to))
+
+  return { valid: true, accepted: viableStates[lastStep].size > 0, trace, endStates: active }
 }

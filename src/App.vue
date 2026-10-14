@@ -1,27 +1,36 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { Activity, ArrowRight, Braces, Check, ChevronDown, CircleHelp, CirclePlus, Code2, Copy, Download, FileJson2, Image, Keyboard, Layers2, Maximize2, Menu, Minimize2, MoreHorizontal, Moon, Pencil, Play, Plus, Redo2, RotateCcw, Settings2, Sparkles, Sun, Trash2, Undo2, Upload, X, Zap } from 'lucide-vue-next'
-import { runNfa, validateMachine } from './nfa.js'
+import { Activity, ArrowRight, Braces, Check, ChevronDown, CircleHelp, CirclePlus, Code2, Copy, Download, FileJson2, Image, Keyboard, Layers2, Maximize2, Menu, Minimize2, MoreHorizontal, Moon, Pause, Pencil, Play, Plus, Redo2, RotateCcw, Settings2, Sparkles, Sun, Trash2, Undo2, Upload, X, Zap } from 'lucide-vue-next'
+import { EPSILON, runNfa, validateMachine } from './nfa.js'
 
 const MACHINE_STORAGE_KEY = 'orbit-nfa-machine-v1'
+const DEFAULT_MACHINE = {
+  states: [
+    { id: 'q0', x: 180, y: 206 }, { id: 'q1', x: 445, y: 135 }, { id: 'q2', x: 445, y: 285 }, { id: 'q3', x: 710, y: 206 },
+  ],
+  alphabet: ['0', '1'],
+  transitions: [
+    { from: 'q0', to: 'q1', symbol: '0' }, { from: 'q0', to: 'q2', symbol: 'ε' },
+    { from: 'q1', to: 'q1', symbol: '1' }, { from: 'q1', to: 'q3', symbol: '1' },
+    { from: 'q2', to: 'q3', symbol: '0' }, { from: 'q3', to: 'q3', symbol: '1' },
+  ],
+  start: 'q0',
+  finals: ['q3'],
+}
 function readSavedMachine(){try{const raw=localStorage.getItem(MACHINE_STORAGE_KEY);return raw?validateMachine(JSON.parse(raw)):null}catch{return null}}
 const restoredMachine = readSavedMachine()
-const states = ref(restoredMachine?.states ?? [
-  { id: 'q0', x: 180, y: 206 }, { id: 'q1', x: 445, y: 135 }, { id: 'q2', x: 445, y: 285 }, { id: 'q3', x: 710, y: 206 },
-])
-const alphabet = ref(restoredMachine?.alphabet ?? ['0', '1'])
-const transitions = ref(restoredMachine?.transitions ?? [
-  { from: 'q0', to: 'q1', symbol: '0' }, { from: 'q0', to: 'q2', symbol: 'ε' },
-  { from: 'q1', to: 'q1', symbol: '1' }, { from: 'q1', to: 'q3', symbol: '1' },
-  { from: 'q2', to: 'q3', symbol: '0' }, { from: 'q3', to: 'q3', symbol: '1' },
-])
-const start = ref(restoredMachine?.start ?? 'q0'), finals = ref(restoredMachine?.finals ?? ['q3']), activeTab = ref('Transition Table')
+const states = ref((restoredMachine?.states ?? DEFAULT_MACHINE.states).map(state => ({ ...state })))
+const alphabet = ref([...(restoredMachine?.alphabet ?? DEFAULT_MACHINE.alphabet)])
+const transitions = ref((restoredMachine?.transitions ?? DEFAULT_MACHINE.transitions).map(edge => ({ ...edge })))
+const start = ref(restoredMachine?.start ?? DEFAULT_MACHINE.start), finals = ref([...(restoredMachine?.finals ?? DEFAULT_MACHINE.finals)]), activeTab = ref('Transition Table')
 const inputString = ref('0101'), result = ref(null), stepTrace = ref([]), simulationStep = ref(0), selectedState = ref(null)
 const showAddTransition = ref(false), newTransition = ref({ from: 'q0', to: 'q1', symbol: '0' })
 const showTransitionEdit = ref(false), transitionEditIndex = ref(null), transitionEditValue = ref({ from: '', to: '', symbol: '' })
 const editingTransitionIndex = ref(null), showRenameState = ref(false), renameTarget = ref(null), renameValue = ref('')
 const showAlphabetInput = ref(false), alphabetInput = ref('')
 const showSettings = ref(false)
+const playbackSpeedMs = ref(Number(localStorage.getItem('orbit-playback-speed')) || 800)
+const isPlaying = ref(false)
 const importInput = ref(null), saveStatus = ref(restoredMachine ? 'Restored from this device' : 'Auto-saves on this device')
 const examplesOpen = ref(false), batchInput = ref('0101\n110\n001'), batchResults = ref([])
 const mobileDrawerOpen = ref(false)
@@ -32,6 +41,7 @@ const focusMode = ref(null)
 const pan = ref({x:0,y:0}), panning = ref(null)
 const gesturePointers = new Map()
 let pinchStart = null
+let playbackTimer = null
 const undoStack = ref([]), redoStack = ref([])
 const isDark = ref(localStorage.getItem('orbit-theme') === 'dark')
 const showDiagramGrid = ref(localStorage.getItem('orbit-show-grid') !== 'false')
@@ -42,6 +52,10 @@ watch(isDark, value => {
 }, { immediate: true })
 watch(showDiagramGrid, value => localStorage.setItem('orbit-show-grid', String(value)))
 watch(highlightActiveStates, value => localStorage.setItem('orbit-highlight-active', String(value)))
+watch(playbackSpeedMs, value => {
+  localStorage.setItem('orbit-playback-speed', String(value))
+  if (isPlaying.value) schedulePlaybackStep()
+})
 watch([states,alphabet,transitions,start,finals],()=>{
   try{localStorage.setItem(MACHINE_STORAGE_KEY,JSON.stringify(machineSnapshot()));saveStatus.value='Auto-saved'}
   catch{saveStatus.value='Local save unavailable'}
@@ -85,18 +99,71 @@ const tuple = computed(() => `M = (Q, Σ, δ, q₀, F)\nQ = {${states.value.map(
 const statusColor = computed(() => result.value === 'ACCEPTED' ? 'accept' : 'reject')
 const currentTraceStep = computed(() => stepTrace.value[simulationStep.value] ?? null)
 const currentStates = computed(() => currentTraceStep.value?.states ?? [])
+const hasAcceptingPath = computed(() => Boolean(stepTrace.value[0]?.acceptingStates?.length))
+const isDefaultMachine = computed(() => JSON.stringify(machineSnapshot()) === JSON.stringify(DEFAULT_MACHINE))
+const activeEdgeKeys = computed(() => {
+  const edges = hasAcceptingPath.value ? currentTraceStep.value?.acceptingTransitions : currentTraceStep.value?.transitions
+  return new Set((edges ?? []).map(edgeKey))
+})
 const simulationSamples = computed(() => {
-  const symbols = alphabet.value
-  if (symbols.length === 0) return []
-  if (symbols.includes('0') && symbols.includes('1')) return ['0101','110','001']
-  const first = symbols[0], second = symbols[1] ?? symbols[0]
-  return [...new Set([`${first}${second}${first}${second}`,`${second}${second}${first}`,`${first}${first}${second}`])]
+  const sampleMachine = {
+    states: states.value.map(state => state.id),
+    alphabet: [...alphabet.value],
+    transitions: transitions.value.map(edge => ({ ...edge })),
+    start: start.value,
+    finals: [...finals.value],
+  }
+  const shortest = shortestAcceptedSample(sampleMachine)
+  if (shortest === null) return []
+
+  const accepted = [shortest]
+  const found = new Set(accepted)
+  const candidates = ['']
+  const maxLength = sampleMachine.states.length + 2
+  let cursor = 0
+  while (cursor < candidates.length && cursor < 2048 && accepted.length < 3) {
+    const candidate = candidates[cursor++]
+    if (!found.has(candidate) && runNfa(sampleMachine, candidate).accepted) {
+      found.add(candidate)
+      accepted.push(candidate)
+    }
+    if ([...candidate].length >= maxLength) continue
+    for (const symbol of sampleMachine.alphabet) {
+      if (candidates.length >= 2048) break
+      candidates.push(candidate + symbol)
+    }
+  }
+  return accepted
 })
 const alphabetHint = computed(() => alphabet.value.length ? `(symbols: ${alphabet.value.join(', ')})` : '(empty alphabet)')
 
 function machineSnapshot(){return {states:states.value.map(s=>({...s})),alphabet:[...alphabet.value],transitions:transitions.value.map(t=>({...t})),start:start.value,finals:[...finals.value]}}
+function edgeKey(edge){return JSON.stringify([edge.from,edge.symbol,edge.to])}
+function shortestAcceptedSample(machine){
+  const queue=[{state:machine.start,distance:0}]
+  const distanceByState=new Map([[machine.start,0]])
+  const inputByState=new Map([[machine.start,'']])
+  while(queue.length){
+    const current=queue.shift()
+    if(current.distance!==distanceByState.get(current.state))continue
+    if(machine.finals.includes(current.state))return inputByState.get(current.state)
+    for(const edge of machine.transitions){
+      if(edge.from!==current.state)continue
+      const epsilon=edge.symbol===EPSILON
+      const nextDistance=current.distance+(epsilon?0:1)
+      if(nextDistance>=(distanceByState.get(edge.to)??Infinity))continue
+      distanceByState.set(edge.to,nextDistance)
+      inputByState.set(edge.to,inputByState.get(current.state)+(epsilon?'':edge.symbol))
+      const next={state:edge.to,distance:nextDistance}
+      if(epsilon)queue.unshift(next)
+      else queue.push(next)
+    }
+  }
+  return null
+}
 function rememberUndo(before){
   if(JSON.stringify(before)===JSON.stringify(machineSnapshot()))return
+  stopPlayback()
   undoStack.value.push(before)
   if(undoStack.value.length>100)undoStack.value.shift()
   redoStack.value=[]
@@ -104,8 +171,19 @@ function rememberUndo(before){
 function restoreMachine(snapshot){states.value=snapshot.states.map(s=>({...s}));alphabet.value=[...snapshot.alphabet];transitions.value=snapshot.transitions.map(t=>({...t}));start.value=snapshot.start;finals.value=[...snapshot.finals];selectedState.value=null;reset()}
 function undo(){if(!undoStack.value.length)return;const current=machineSnapshot();const previous=undoStack.value.pop();redoStack.value.push(current);restoreMachine(previous)}
 function redo(){if(!redoStack.value.length)return;const current=machineSnapshot();const next=redoStack.value.pop();undoStack.value.push(current);restoreMachine(next)}
+function resetMachineToDefault(){
+  const previous=machineSnapshot()
+  if(JSON.stringify(previous)===JSON.stringify(DEFAULT_MACHINE))return
+  restoreMachine(DEFAULT_MACHINE)
+  rememberUndo(previous)
+  inputString.value='0101'
+  activeTab.value='Transition Table'
+  resetDiagramView()
+  notify('NFA reset to the starter example. Use Undo to restore your custom NFA.')
+}
 
 function simulate() {
+  stopPlayback()
   const outcome=runNfa(machineSnapshot(),inputString.value)
   stepTrace.value=outcome.trace
   simulationStep.value=0
@@ -113,8 +191,28 @@ function simulate() {
   if(!outcome.valid){result.value='INVALID';stepTrace.value=[...outcome.trace,{position:outcome.errorIndex+1,symbol:outcome.invalidSymbol,states:outcome.endStates,error:`“${outcome.invalidSymbol}” is not in the input alphabet`}];simulationStep.value=stepTrace.value.length-1;return}
   result.value=outcome.trace.length===1?(outcome.accepted?'ACCEPTED':'REJECTED'):null
 }
-function advanceSimulation(){if(!stepTrace.value.length||simulationStep.value>=stepTrace.value.length-1)return;simulationStep.value+=1;if(simulationStep.value===stepTrace.value.length-1){const outcome=runNfa(machineSnapshot(),inputString.value);result.value=outcome.accepted?'ACCEPTED':'REJECTED'}}
+function advanceSimulation(){if(!stepTrace.value.length||simulationStep.value>=stepTrace.value.length-1)return;simulationStep.value+=1;if(simulationStep.value===stepTrace.value.length-1){const outcome=runNfa(machineSnapshot(),inputString.value);result.value=!outcome.valid?'INVALID':outcome.accepted?'ACCEPTED':'REJECTED'}}
 function previousSimulationStep(){if(simulationStep.value>0){simulationStep.value-=1;result.value=null}}
+function stopPlayback(){isPlaying.value=false;if(playbackTimer!==null){window.clearTimeout(playbackTimer);playbackTimer=null}}
+function schedulePlaybackStep(){
+  if(!isPlaying.value)return
+  if(playbackTimer!==null)window.clearTimeout(playbackTimer)
+  playbackTimer=window.setTimeout(()=>{
+    playbackTimer=null
+    advanceSimulation()
+    if(simulationStep.value>=stepTrace.value.length-1)stopPlayback()
+    else schedulePlaybackStep()
+  },playbackSpeedMs.value)
+}
+function togglePlayback(){
+  if(isPlaying.value){stopPlayback();return}
+  if(stepTrace.value.length<=1)return
+  if(simulationStep.value>=stepTrace.value.length-1){simulationStep.value=0;result.value=null}
+  isPlaying.value=true
+  schedulePlaybackStep()
+}
+function stepForwardManually(){stopPlayback();advanceSimulation()}
+function stepBackManually(){stopPlayback();previousSimulationStep()}
 function runBatchTests(){batchResults.value=batchInput.value.split(/\r?\n/).filter(value=>value.length>0).map(input=>({input,...runNfa(machineSnapshot(),input)}))}
 function focusSimulator(){document.querySelector('.simulator-card')?.scrollIntoView({behavior:'smooth',block:'center'})}
 function toggleMobileDrawer(){if(window.matchMedia('(max-width: 640px)').matches)mobileDrawerOpen.value=!mobileDrawerOpen.value}
@@ -182,6 +280,10 @@ function exampleMachine(type){
   if(type==='ends-01')return {states:[{id:'q0',x:150,y:205},{id:'q1',x:405,y:205},{id:'q2',x:660,y:205}],alphabet:['0','1'],transitions:[{from:'q0',to:'q0',symbol:'0'},{from:'q0',to:'q0',symbol:'1'},{from:'q0',to:'q1',symbol:'0'},{from:'q1',to:'q2',symbol:'1'}],start:'q0',finals:['q2']}
   if(type==='contains-101')return {states:[{id:'q0',x:120,y:205},{id:'q1',x:330,y:205},{id:'q2',x:540,y:205},{id:'q3',x:720,y:205}],alphabet:['0','1'],transitions:[{from:'q0',to:'q0',symbol:'0'},{from:'q0',to:'q0',symbol:'1'},{from:'q0',to:'q1',symbol:'1'},{from:'q1',to:'q2',symbol:'0'},{from:'q2',to:'q3',symbol:'1'},{from:'q3',to:'q3',symbol:'0'},{from:'q3',to:'q3',symbol:'1'}],start:'q0',finals:['q3']}
   if(type==='even-zeros')return {states:[{id:'qEven',x:260,y:205},{id:'qOdd',x:560,y:205}],alphabet:['0','1'],transitions:[{from:'qEven',to:'qOdd',symbol:'0'},{from:'qOdd',to:'qEven',symbol:'0'},{from:'qEven',to:'qEven',symbol:'1'},{from:'qOdd',to:'qOdd',symbol:'1'}],start:'qEven',finals:['qEven']}
+  if(type==='starts-with-1')return {states:[{id:'q0',x:230,y:205},{id:'q1',x:570,y:205}],alphabet:['0','1'],transitions:[{from:'q0',to:'q1',symbol:'1'},{from:'q1',to:'q1',symbol:'0'},{from:'q1',to:'q1',symbol:'1'}],start:'q0',finals:['q1']}
+  if(type==='contains-00')return {states:[{id:'q0',x:110,y:205},{id:'q1',x:400,y:105},{id:'q2',x:690,y:205}],alphabet:['0','1'],transitions:[{from:'q0',to:'q0',symbol:'0'},{from:'q0',to:'q0',symbol:'1'},{from:'q0',to:'q1',symbol:'0'},{from:'q1',to:'q2',symbol:'0'},{from:'q2',to:'q2',symbol:'0'},{from:'q2',to:'q2',symbol:'1'}],start:'q0',finals:['q2']}
+  if(type==='ends-with-1')return {states:[{id:'q0',x:250,y:205},{id:'q1',x:610,y:205}],alphabet:['0','1'],transitions:[{from:'q0',to:'q0',symbol:'0'},{from:'q0',to:'q0',symbol:'1'},{from:'q0',to:'q1',symbol:'1'}],start:'q0',finals:['q1']}
+  if(type==='a-star-b')return {states:[{id:'q0',x:160,y:205},{id:'q1',x:420,y:205},{id:'q2',x:680,y:205}],alphabet:['a','b'],transitions:[{from:'q0',to:'q0',symbol:'a'},{from:'q0',to:'q1',symbol:'ε'},{from:'q1',to:'q2',symbol:'b'}],start:'q0',finals:['q2']}
   return {states:[{id:'q0',x:150,y:205},{id:'q1',x:405,y:205},{id:'q2',x:660,y:205}],alphabet:['a','b'],transitions:[{from:'q0',to:'q0',symbol:'a'},{from:'q0',to:'q0',symbol:'b'},{from:'q0',to:'q1',symbol:'a'},{from:'q1',to:'q2',symbol:'a'},{from:'q2',to:'q2',symbol:'a'},{from:'q2',to:'q2',symbol:'b'}],start:'q0',finals:['q2']}
 }
 function exportSvgBlob(){
@@ -193,7 +295,7 @@ function exportSvgBlob(){
 }
 function exportSvg(){const blob=exportSvgBlob();if(blob){downloadBlob(blob,'nfa-diagram.svg');notify('SVG diagram exported')}}
 async function exportPng(){const svgBlob=exportSvgBlob();if(!svgBlob)return;const url=URL.createObjectURL(svgBlob);try{const image=new window.Image();await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=()=>reject(new Error('Could not read SVG'));image.src=url});const canvas=document.createElement('canvas');canvas.width=1600;canvas.height=820;const context=canvas.getContext('2d');if(!context)throw new Error('Canvas is unavailable');context.drawImage(image,0,0,canvas.width,canvas.height);const png=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!png)throw new Error('PNG export failed');downloadBlob(png,'nfa-diagram.png');notify('PNG diagram exported')}catch{notify('Could not export PNG in this browser')}finally{URL.revokeObjectURL(url)}}
-function reset(){result.value=null;stepTrace.value=[];simulationStep.value=0;batchResults.value=[]}
+function reset(){stopPlayback();result.value=null;stepTrace.value=[];simulationStep.value=0;batchResults.value=[]}
 function resetDiagramView(){zoom.value=1;pan.value={x:0,y:0};focusMode.value=null}
 function toggleLegendFocus(mode){
   if (mode === 'accepting' && finals.value.length === 0) return notify('Mark a state as accepting first')
@@ -223,7 +325,7 @@ function onFullscreenChange(){
   }
 }
 onMounted(()=>document.addEventListener('fullscreenchange',onFullscreenChange))
-onBeforeUnmount(()=>document.removeEventListener('fullscreenchange',onFullscreenChange))
+onBeforeUnmount(()=>{stopPlayback();document.removeEventListener('fullscreenchange',onFullscreenChange)})
 </script>
 
 <template>
@@ -268,20 +370,22 @@ onBeforeUnmount(()=>document.removeEventListener('fullscreenchange',onFullscreen
         <div class="page-heading"><div><div class="eyebrow"><span class="eyebrow-icon"><Sparkles :size="12"/></span> CHCCI NFA WORKSPACE</div><h1>NFA Builder</h1><p class="subtitle">Design, visualize, and test your nondeterministic finite automata.</p></div><div class="page-heading-actions"><button class="examples-trigger" @click="examplesOpen=true"><Sparkles :size="14"/> Examples</button><button class="new-state-button" @click="addState"><Plus :size="16"/> Add state</button></div></div>
         <div class="editor-layout">
           <section id="diagram-card" ref="diagramCard" class="card diagram-card" :class="{'diagram-expanded':diagramExpanded}">
-            <div class="card-top"><div><div class="section-title">State diagram <span class="live-indicator"><i></i> LIVE</span></div><div class="section-subtitle">Drag states to arrange your automaton</div></div><div class="diagram-head-tools"><button v-if="diagramExpanded" class="diagram-add-state-action" @click="addState"><Plus :size="14"/> Add state</button><button class="diagram-history-button" :disabled="!undoStack.length" aria-label="Undo" title="Undo" @click="undo"><Undo2 :size="16"/></button><button class="diagram-history-button" :disabled="!redoStack.length" aria-label="Redo" title="Redo" @click="redo"><Redo2 :size="16"/></button><button v-if="diagramExpanded" class="diagram-theme-button" :aria-label="isDark?'Switch to light mode':'Switch to dark mode'" :title="isDark?'Switch to light mode':'Switch to dark mode'" @click="isDark=!isDark"><Sun v-if="isDark" :size="16"/><Moon v-else :size="16"/></button><button v-if="diagramExpanded" class="diagram-theme-button" aria-label="Settings" title="Settings" @click="showSettings=true"><Settings2 :size="16"/></button><button class="diagram-expand-button" :aria-label="diagramExpanded?'Minimize diagram':'Maximize diagram'" :title="diagramExpanded?'Minimize diagram':'Maximize diagram'" @click="diagramExpanded?collapseDiagram():expandDiagram()"><Minimize2 v-if="diagramExpanded" :size="16"/><Maximize2 v-else :size="16"/></button><button class="dots-button" title="Export NFA" @click="exportJson"><MoreHorizontal :size="18"/></button></div></div>
+            <div class="card-top"><div><div class="section-title">State diagram <span class="live-indicator"><i></i> LIVE</span></div><div class="section-subtitle">Drag states to arrange your automaton</div></div><div class="diagram-head-tools"><button v-if="diagramExpanded" class="diagram-add-state-action" @click="addState"><Plus :size="14"/> Add state</button><button class="diagram-history-button" :disabled="!undoStack.length" aria-label="Undo" title="Undo" @click="undo"><Undo2 :size="16"/></button><button class="diagram-history-button" :disabled="!redoStack.length" aria-label="Redo" title="Redo" @click="redo"><Redo2 :size="16"/></button><button v-if="!isDefaultMachine" class="diagram-reset-button" aria-label="Reset NFA to starter example" title="Reset NFA to starter example. Undo restores your custom NFA." @click="resetMachineToDefault"><RotateCcw :size="16"/><span>Reset</span></button><button v-if="diagramExpanded" class="diagram-theme-button" :aria-label="isDark?'Switch to light mode':'Switch to dark mode'" :title="isDark?'Switch to light mode':'Switch to dark mode'" @click="isDark=!isDark"><Sun v-if="isDark" :size="16"/><Moon v-else :size="16"/></button><button v-if="diagramExpanded" class="diagram-theme-button" aria-label="Settings" title="Settings" @click="showSettings=true"><Settings2 :size="16"/></button><button class="diagram-expand-button" :aria-label="diagramExpanded?'Minimize diagram':'Maximize diagram'" :title="diagramExpanded?'Minimize diagram':'Maximize diagram'" @click="diagramExpanded?collapseDiagram():expandDiagram()"><Minimize2 v-if="diagramExpanded" :size="16"/><Maximize2 v-else :size="16"/></button><button class="dots-button" title="Export NFA" @click="exportJson"><MoreHorizontal :size="18"/></button></div></div>
             <div class="diagram-wrap" ref="diagram" title="Swipe or drag the blank canvas to pan; pinch to zoom" @pointerdown.capture="onDiagramPointerDown" @pointermove.capture="onDiagramPointerMove" @pointerup.capture="onDiagramPointerEnd" @pointercancel.capture="onDiagramPointerEnd" @wheel="onDiagramWheel">
               <div v-if="showDiagramGrid" class="diagram-grid"></div>
               <button class="diagram-add-state" @click="addState"><Plus :size="15"/> Add state</button>
-              <svg class="diagram-svg" :viewBox="diagramViewBox" preserveAspectRatio="xMidYMid meet" :style="{transform:`translate(${pan.x}px, ${pan.y}px) scale(${zoom})`}">
-                <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#9aa3b3"/></marker><marker id="startArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#ff805f"/></marker></defs>
-                <g v-for="(t,i) in transitions" :key="i"><path class="edge-path" :d="edgePath(t)" marker-end="url(#arrow)"/><g class="edge-label" :transform="`translate(${edgeLabel(t).x},${edgeLabel(t).y})`"><rect x="-13" y="-12" width="26" height="23" rx="7"/><text text-anchor="middle" dominant-baseline="central">{{t.symbol}}</text></g></g>
-                <g v-for="s in states" :key="s.id" class="state-group" :class="{'state-selected':selectedState===s.id,'state-legend-focus':focusedStates.some(target=>target.id===s.id),'state-active':highlightActiveStates&&currentStates.includes(s.id)}" @pointerdown.stop="startDrag($event,s)" @click.stop="selectedState=s.id">
+              <svg class="diagram-svg" :class="{'simulation-playing':isPlaying,'accepted-path-mode':hasAcceptingPath}" :viewBox="diagramViewBox" preserveAspectRatio="xMidYMid meet" :style="{transform:`translate(${pan.x}px, ${pan.y}px) scale(${zoom})`}">
+                <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#9aa3b3"/></marker><marker id="activeArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#ff805f"/></marker><marker id="acceptingArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#2caa72"/></marker><marker id="startArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#ff805f"/></marker></defs>
+                <g v-for="(t,i) in transitions" :key="i" :class="{'edge-active':activeEdgeKeys.has(edgeKey(t))}"><path class="edge-path" :d="edgePath(t)" :marker-end="activeEdgeKeys.has(edgeKey(t))?(hasAcceptingPath?'url(#acceptingArrow)':'url(#activeArrow)'):'url(#arrow)'"/><g class="edge-label" :transform="`translate(${edgeLabel(t).x},${edgeLabel(t).y})`"><rect x="-13" y="-12" width="26" height="23" rx="7"/><text text-anchor="middle" dominant-baseline="central">{{t.symbol}}</text></g></g>
+                <g v-for="s in states" :key="s.id" class="state-group" :class="{'state-selected':selectedState===s.id,'state-legend-focus':focusedStates.some(target=>target.id===s.id),'state-active':highlightActiveStates&&currentStates.includes(s.id),'state-accepting-path':hasAcceptingPath&&currentTraceStep?.acceptingStates?.includes(s.id),'state-dead-path':hasAcceptingPath&&currentStates.includes(s.id)&&!currentTraceStep?.acceptingStates?.includes(s.id)}" @pointerdown.stop="startDrag($event,s)" @click.stop="selectedState=s.id">
                   <line v-if="s.id===start" :x1="s.x-76" :y1="s.y" :x2="s.x-43" :y2="s.y" class="start-line" marker-end="url(#startArrow)"/>
+                  <circle v-if="isPlaying&&highlightActiveStates&&currentStates.includes(s.id)&&(!hasAcceptingPath||currentTraceStep?.acceptingStates?.includes(s.id))" :cx="s.x" :cy="s.y" r="43" class="state-pulse-halo"/>
                   <circle v-if="finals.includes(s.id)" :cx="s.x" :cy="s.y" r="37" class="final-ring"/><circle :cx="s.x" :cy="s.y" r="31" class="state-circle"/><text :x="s.x" :y="s.y+5" text-anchor="middle" class="state-label">{{s.id}}</text>
                   <foreignObject :x="s.x-57" :y="s.y-59" width="114" height="25" class="state-controls"><div xmlns="http://www.w3.org/1999/xhtml" class="state-control-row"><button @pointerdown.stop @click.stop="setStartState(s.id)">→ start</button><button @pointerdown.stop @click.stop="toggleFinal(s.id);notify('Final state updated')">{{finals.includes(s.id)?'★ final':'☆ final'}}</button><button title="Rename state" @pointerdown.stop @click.stop="openRenameState(s.id)"><Pencil :size="10"/></button><button class="delete-state" title="Delete state" @pointerdown.stop @click.stop="deleteState(s.id)"><Trash2 :size="11"/></button></div></foreignObject>
                 </g>
               </svg>
               <div v-if="states.length===0" class="empty-diagram">Add a state to start building your NFA</div>
+              <div v-if="stepTrace.length&&hasAcceptingPath" class="accepting-path-indicator"><span></span> Possible accepting path</div>
               <div class="zoom-controls"><button title="Zoom in" @click="zoom=Math.min(2.5,zoom+.1)">+</button><span>{{Math.round(zoom*100)}}%</span><button title="Zoom out" @click="zoom=Math.max(.5,zoom-.1)">−</button><button title="Reset zoom and pan" @click="resetDiagramView"><RotateCcw :size="12"/></button></div>
               <div class="diagram-hint"><span class="hint-dot"></span> {{states.length}} states <span class="hint-sep">·</span> {{transitions.length}} transitions</div>
             </div>
@@ -290,9 +394,10 @@ onBeforeUnmount(()=>document.removeEventListener('fullscreenchange',onFullscreen
 
           <section class="card simulator-card"><div class="card-top"><div><div class="section-title"><span class="sim-title-icon"><Activity :size="15"/></span> String simulator</div><div class="section-subtitle">Run an input through your NFA</div></div><button class="dots-button" @click="reset"><RotateCcw :size="15"/></button></div>
             <label class="field-label" for="input-string">INPUT STRING <span class="optional-label">{{alphabetHint}}</span></label><div class="input-row"><div class="input-prefix"><span class="tiny-braces">{ }</span></div><input id="input-string" v-model="inputString" placeholder="Type a string..." @keyup.enter="simulate" @input="reset"/><button class="clear-input" v-if="inputString" @click="inputString='';reset()"><X :size="14"/></button></div>
-            <div class="sample-row" v-if="simulationSamples.length"><span>TRY</span><button v-for="s in simulationSamples" :key="s" @click="inputString=s;reset()">{{s}}</button></div>
+            <div class="sample-row" v-if="simulationSamples.length"><span>TRY</span><button v-for="s in simulationSamples" :key="s" class="sample-accepted" :aria-label="`${s || 'Empty string'}: Accepted`" @click="inputString=s;reset()"><span>{{s || 'ε'}}</span><small class="sample-status">Accepted</small></button></div>
+            <div v-else class="sample-row sample-row-empty"><span>TRY</span><small>No accepted strings. Add a path to an accepting state.</small></div>
             <button class="run-button" @click="simulate"><Play :size="14" fill="currentColor"/> Run simulation <span class="run-shortcut">↵</span></button>
-            <div v-if="stepTrace.length>1" class="step-controls"><button :disabled="simulationStep===0" @click="previousSimulationStep">← Previous</button><span>Step {{simulationStep}} / {{stepTrace.length-1}}</span><button :disabled="simulationStep>=stepTrace.length-1" @click="advanceSimulation">Next →</button></div>
+            <div v-if="stepTrace.length>1" class="step-controls"><button :disabled="simulationStep===0" @click="stepBackManually">← Previous</button><button class="step-play-button" :aria-label="isPlaying?'Pause simulation':'Play simulation'" :title="isPlaying?'Pause simulation':'Play simulation'" @click="togglePlayback"><Pause v-if="isPlaying" :size="16"/><Play v-else :size="16" fill="currentColor"/></button><span>Step {{simulationStep}} / {{stepTrace.length-1}}</span><button :disabled="simulationStep>=stepTrace.length-1" @click="stepForwardManually">Next →</button></div>
             <div class="result-panel" :class="result?statusColor:stepTrace.length?'in-progress':''"><div class="result-top"><div class="result-icon"><Check v-if="result==='ACCEPTED'" :size="15"/><X v-else-if="result==='REJECTED'||result==='INVALID'" :size="15"/><Activity v-else :size="14"/></div><div><div class="result-heading">{{result==='ACCEPTED'?'String accepted':result==='REJECTED'?'String rejected':result==='INVALID'?'Invalid input':stepTrace.length?'Simulation step':'Ready to simulate'}}</div><div class="result-copy">{{result==='ACCEPTED'?'At least one path reached a final state.':result==='REJECTED'?'No computation path reached a final state.':result==='INVALID'?'Check the input against your alphabet.':stepTrace.length?`After ${currentTraceStep?.position??0} input symbols, the active states are shown below.`:'Enter an input string and run the simulation.'}}</div></div></div>
               <div v-if="stepTrace.length" class="trace-list"><div v-for="(step,i) in stepTrace" :key="i" class="trace-row" :class="{'trace-current':i===simulationStep}"><span class="trace-step">{{i===0?'START':`STEP ${i}`}}</span><span class="trace-symbol">{{step.symbol==='ε'?'ε':`“${step.symbol}”`}}</span><ArrowRight :size="12" class="trace-arrow"/><span class="trace-states">{{step.error||`{ ${step.states.join(', ')||'∅'} }`}}</span></div></div><div v-else class="result-bottom"><span>Current states</span><div class="state-chips"><span>{{start}}</span></div></div>
             </div>
@@ -322,10 +427,19 @@ onBeforeUnmount(()=>document.removeEventListener('fullscreenchange',onFullscreen
         <section class="guide-step"><span class="guide-number">7</span><div><h3>Navigate the diagram on a phone</h3><p>Tap the logo to open the navigation drawer. Maximize the diagram for landscape editing, drag with one finger to pan, and pinch with two fingers to zoom.</p></div></section>
         <section class="guide-step"><span class="guide-number guide-tip-icon"><CircleHelp :size="16"/></span><div><h3>Remember what makes an NFA</h3><p>For each input symbol, the simulator tracks every state the machine could be in. Epsilon transitions can move between states without consuming an input symbol.</p></div></section>
       </div><div class="guide-actions"><button class="confirm-button" @click="guideOpen=false"><Check :size="14"/> Got it</button></div></div></div>
-      <div v-if="examplesOpen" class="modal-overlay" @click.self="examplesOpen=false"><div class="modal-card examples-modal"><div class="modal-heading"><div><h2>Example NFAs</h2><p>Load a ready-made machine to explore how it works.</p></div><button class="modal-close" aria-label="Close examples" @click="examplesOpen=false"><X :size="17"/></button></div><div class="example-list"><button class="example-card" @click="loadExample(exampleMachine('ends-01'))"><span class="example-symbol">01</span><span><strong>Strings ending in 01</strong><small>Alphabet: {0, 1}. Uses nondeterminism to guess the final 0.</small></span><ArrowRight :size="15"/></button><button class="example-card" @click="loadExample(exampleMachine('contains-101'))"><span class="example-symbol">101</span><span><strong>Strings containing 101</strong><small>Alphabet: {0, 1}. Finds the substring 101 anywhere.</small></span><ArrowRight :size="15"/></button><button class="example-card" @click="loadExample(exampleMachine('even-zeros'))"><span class="example-symbol">0²</span><span><strong>Even number of zeros</strong><small>Alphabet: {0, 1}. Accepts strings with an even count of 0.</small></span><ArrowRight :size="15"/></button><button class="example-card" @click="loadExample(exampleMachine('contains-aa'))"><span class="example-symbol">aa</span><span><strong>Strings containing aa</strong><small>Alphabet: {a, b}. Accepts once two consecutive a symbols appear.</small></span><ArrowRight :size="15"/></button></div></div></div>
+      <div v-if="examplesOpen" class="modal-overlay" @click.self="examplesOpen=false"><div class="modal-card examples-modal"><div class="modal-heading"><div><h2>Example NFAs</h2><p>Load a ready-made machine to explore how it works.</p></div><button class="modal-close" aria-label="Close examples" @click="examplesOpen=false"><X :size="17"/></button></div><div class="example-list">
+        <button class="example-card" @click="loadExample(exampleMachine('ends-01'))"><span class="example-symbol">01</span><span><strong>Strings ending in 01</strong><small>Alphabet: {0, 1}. Accepted examples: 01 and 101.</small></span><ArrowRight :size="15"/></button>
+        <button class="example-card" @click="loadExample(exampleMachine('contains-101'))"><span class="example-symbol">101</span><span><strong>Strings containing 101</strong><small>Alphabet: {0, 1}. Accepted examples: 101 and 0101.</small></span><ArrowRight :size="15"/></button>
+        <button class="example-card" @click="loadExample(exampleMachine('even-zeros'))"><span class="example-symbol">0²</span><span><strong>Even number of zeros</strong><small>Alphabet: {0, 1}. Accepted examples: ε and 00.</small></span><ArrowRight :size="15"/></button>
+        <button class="example-card" @click="loadExample(exampleMachine('contains-aa'))"><span class="example-symbol">aa</span><span><strong>Strings containing aa</strong><small>Alphabet: {a, b}. Accepted examples: aa and baa.</small></span><ArrowRight :size="15"/></button>
+        <button class="example-card" @click="loadExample(exampleMachine('starts-with-1'))"><span class="example-symbol">1…</span><span><strong>Strings starting with 1</strong><small>Alphabet: {0, 1}. Accepted examples: 1 and 101.</small></span><ArrowRight :size="15"/></button>
+        <button class="example-card" @click="loadExample(exampleMachine('contains-00'))"><span class="example-symbol">00</span><span><strong>Strings containing 00</strong><small>Alphabet: {0, 1}. Accepted examples: 00 and 1001.</small></span><ArrowRight :size="15"/></button>
+        <button class="example-card" @click="loadExample(exampleMachine('ends-with-1'))"><span class="example-symbol">…1</span><span><strong>Strings ending in 1</strong><small>Alphabet: {0, 1}. Accepted examples: 1 and 001.</small></span><ArrowRight :size="15"/></button>
+        <button class="example-card" @click="loadExample(exampleMachine('a-star-b'))"><span class="example-symbol">a*b</span><span><strong>Any number of a's followed by b</strong><small>Alphabet: {a, b}. Uses an ε transition. Accepted examples: b and aaab.</small></span><ArrowRight :size="15"/></button>
+      </div></div></div>
       <div v-if="showRenameState" class="modal-overlay" @click.self="showRenameState=false"><div class="modal-card small-modal"><div class="modal-heading"><div><h2>Rename state</h2><p>Update the state label and its transitions.</p></div><button class="modal-close" aria-label="Close rename dialog" @click="showRenameState=false"><X :size="17"/></button></div><label class="rename-label">STATE NAME<input v-model="renameValue" class="symbol-input" maxlength="20" placeholder="e.g. qNew" @keyup.enter="renameState"/></label><div class="modal-actions"><button class="cancel-button" @click="showRenameState=false">Cancel</button><button class="confirm-button" @click="renameState"><Check :size="14"/> Save state</button></div></div></div>
       <div v-if="showTransitionEdit" class="modal-overlay" @click.self="showTransitionEdit=false"><div class="modal-card"><div class="modal-heading"><div><h2>Edit transition</h2><p>Change its source, input symbol, or destination.</p></div><button class="modal-close" aria-label="Close transition editor" @click="showTransitionEdit=false"><X :size="17"/></button></div><div class="modal-fields"><label>FROM STATE<select v-model="transitionEditValue.from"><option v-for="s in states" :key="s.id">{{s.id}}</option></select></label><label>INPUT SYMBOL<select v-model="transitionEditValue.symbol"><option v-for="sym in [...alphabet,'ε']" :key="sym">{{sym}}</option></select></label><label>TO STATE<select v-model="transitionEditValue.to"><option v-for="s in states" :key="s.id">{{s.id}}</option></select></label></div><div class="modal-actions"><button class="cancel-button" @click="showTransitionEdit=false">Cancel</button><button class="confirm-button" @click="saveTransitionEdit"><Check :size="14"/> Save changes</button></div></div></div>
-      <div v-if="showSettings" class="modal-overlay" @click.self="showSettings=false"><div class="modal-card small-modal settings-modal"><div class="modal-heading"><div><h2>Workspace settings</h2><p>Adjust the diagram to your preference.</p></div><button class="modal-close" aria-label="Close settings" @click="showSettings=false"><X :size="17"/></button></div><div class="settings-options"><label class="settings-option"><span><strong>Diagram grid</strong><small>Show the dotted background behind the states.</small></span><input v-model="showDiagramGrid" type="checkbox" class="setting-checkbox"/></label><label class="settings-option"><span><strong>Highlight active states</strong><small>Emphasize states reached by the last simulation.</small></span><input v-model="highlightActiveStates" type="checkbox" class="setting-checkbox"/></label></div><div class="modal-actions"><button class="confirm-button" @click="showSettings=false">Done</button></div></div></div>
+      <div v-if="showSettings" class="modal-overlay" @click.self="showSettings=false"><div class="modal-card small-modal settings-modal"><div class="modal-heading"><div><h2>Workspace settings</h2><p>Adjust the diagram to your preference.</p></div><button class="modal-close" aria-label="Close settings" @click="showSettings=false"><X :size="17"/></button></div><div class="settings-options"><label class="settings-option"><span><strong>Diagram grid</strong><small>Show the dotted background behind the states.</small></span><input v-model="showDiagramGrid" type="checkbox" class="setting-checkbox"/></label><label class="settings-option"><span><strong>Highlight active states</strong><small>Emphasize states reached by the last simulation.</small></span><input v-model="highlightActiveStates" type="checkbox" class="setting-checkbox"/></label><label class="settings-option settings-option-speed"><span><strong>Playback speed</strong><small>Delay between simulation steps.</small></span><select v-model.number="playbackSpeedMs" class="playback-speed-select"><option :value="1400">Slow · 1.4 s</option><option :value="800">Normal · 0.8 s</option><option :value="350">Fast · 0.35 s</option></select></label></div><div class="modal-actions"><button class="confirm-button" @click="showSettings=false">Done</button></div></div></div>
       <div v-if="showAddTransition" class="modal-overlay" @click.self="showAddTransition=false"><div class="modal-card"><div class="modal-heading"><div><h2>Add a transition</h2><p>Define how your automaton moves between states.</p></div><button class="modal-close" @click="showAddTransition=false"><X :size="17"/></button></div><div class="modal-fields"><label>FROM STATE<select v-model="newTransition.from"><option v-for="s in states" :key="s.id">{{s.id}}</option></select></label><label>INPUT SYMBOL<select v-model="newTransition.symbol"><option v-for="sym in [...alphabet,'ε']" :key="sym">{{sym}}</option></select></label><label>TO STATE<select v-model="newTransition.to"><option v-for="s in states" :key="s.id">{{s.id}}</option></select></label></div><div class="modal-actions"><button class="cancel-button" @click="showAddTransition=false">Cancel</button><button class="confirm-button" @click="addTransition"><Plus :size="14"/> Add transition</button></div></div></div>
       <div v-if="showAlphabetInput" class="modal-overlay" @click.self="showAlphabetInput=false"><div class="modal-card small-modal"><div class="modal-heading"><div><h2>Add an input symbol</h2><p>Enter one character for your alphabet Σ.</p></div><button class="modal-close" @click="showAlphabetInput=false"><X :size="17"/></button></div><input class="symbol-input" v-model="alphabetInput" maxlength="1" placeholder="e.g. a" @keyup.enter="addSymbol"/><div class="modal-actions"><button class="cancel-button" @click="showAlphabetInput=false">Cancel</button><button class="confirm-button" @click="addSymbol"><Plus :size="14"/> Add symbol</button></div></div></div>
     </Teleport>

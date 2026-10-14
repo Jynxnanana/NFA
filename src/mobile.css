@@ -43,6 +43,25 @@
 }
 .diagram-history-button:hover:not(:disabled) { background: #f5f6f8; color: #e67c5b; }
 .diagram-history-button:disabled { opacity: .35; cursor: default; }
+.diagram-reset-button {
+  width: auto;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  place-items: center;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #c87964;
+  font-size: 11px;
+  font-weight: 700;
+}
+.diagram-reset-button:hover { background: #fff1ed; color: #df6949; }
+.dark-mode .diagram-reset-button { color: #f0a08c; }
+.dark-mode .diagram-reset-button:hover { background: #392b2c; color: #ffb19b; }
 .diagram-expand-button {
   width: 30px;
   height: 30px;
@@ -384,6 +403,9 @@
   .diagram-history-button { width: 34px; height: 34px; }
   .diagram-theme-button { width: 34px; height: 34px; }
   .diagram-head-tools { gap: 5px; }
+  .diagram-reset-button { height: 34px; }
+  .diagram-expanded .diagram-reset-button { width: 34px; padding: 0; }
+  .diagram-expanded .diagram-reset-button span { display: none; }
 
   .diagram-card.diagram-expanded {
     padding-top: env(safe-area-inset-top);
@@ -536,4 +558,426 @@
   .new-state-button { font-size: 0; }
   .data-tabs > button { font-size: 11px; }
   .data-actions button { font-size: 0; width: 30px; padding: 0; }
+}
+
+/* Increase the reading size throughout the NFA editor. */
+body { font-size: 16px; }
+
+@media (min-width: 641px) {
+  .workspace-label, .nav-heading { font-size: 11px; }
+  .workspace-select, .nav-item { font-size: 14px; }
+  .side-badge { font-size: 10px; }
+  .help-card strong { font-size: 13px; }
+  .help-card p { font-size: 12px; }
+  .help-card button { font-size: 12px; }
+  .user-meta strong { font-size: 13px; }
+  .user-meta span { font-size: 12px; }
+  .breadcrumbs { font-size: 14px; }
+  .saved-label { font-size: 12px; }
+  .share-button { font-size: 13px; }
+  .eyebrow { font-size: 11px; }
+  .page-heading h1 { font-size: 34px; }
+  .subtitle { font-size: 15px; }
+  .new-state-button, .examples-trigger { font-size: 13px; }
+  .section-title { font-size: 15px; }
+  .section-subtitle { font-size: 12px; }
+  .live-indicator { font-size: 9px; }
+  .state-label { font-size: 17px; }
+  .edge-label text { font-size: 13px; }
+  .state-control-row button { font-size: 9px; }
+  .zoom-controls span { font-size: 11px; }
+  .diagram-hint, .legend-item { font-size: 11px; }
+  .diagram-export-button, .add-transition-link { font-size: 11px; }
+  .field-label, .optional-label { font-size: 12px; }
+  .input-row input, .batch-input { font-size: 15px; }
+  .sample-row > span { font-size: 10px; }
+  .sample-row button { font-size: 13px; }
+  .run-button { font-size: 14px; }
+  .result-heading { font-size: 15px; }
+  .result-copy, .result-bottom, .trace-row, .trace-states { font-size: 13px; }
+  .trace-step { font-size: 11px; }
+  .trace-symbol { font-size: 13px; }
+  .sim-footnote { font-size: 12px; }
+  .data-tabs > button { font-size: 14px; }
+  .data-actions button { font-size: 12px; }
+  .transition-table { font-size: 13px; }
+  .transition-table th { font-size: 12px; }
+  .transition-table td, .state-cell { font-size: 13px; }
+  .dest-pill { font-size: 12px; }
+  .mini-tag { font-size: 9px; }
+  .table-footer, .tuple-note { font-size: 12px; }
+  .tuple-content pre { font-size: 14px; }
+  .page-footer { font-size: 11px; }
+  .modal-heading h2 { font-size: 22px; }
+  .modal-heading p { font-size: 14px; }
+  .modal-fields label, .rename-label { font-size: 12px; }
+  .modal-fields select, .symbol-input { font-size: 15px; }
+  .cancel-button, .confirm-button { font-size: 14px; }
+  .settings-option strong { font-size: 14px; }
+  .settings-option small { font-size: 12px; }
+  .transition-manager-head strong { font-size: 13px; }
+  .transition-manager-head span { font-size: 11px; }
+  .transition-manager-head > button { font-size: 12px; }
+  .transition-state-name, .transition-symbol { font-size: 13px; }
+  .transition-empty { font-size: 12px; }
+  .batch-intro strong { font-size: 14px; }
+  .batch-intro p, .batch-empty { font-size: 12px; }
+  .batch-results-head { font-size: 10px; }
+  .batch-result-row code, .batch-ending { font-size: 12px; }
+  .batch-status { font-size: 11px; }
+  .guide-eyebrow { font-size: 11px; }
+  .guide-step h3 { font-size: 14px; }
+  .guide-step p { font-size: 13px; }
+  .example-card strong { font-size: 13px; }
+  .example-card small { font-size: 12px; }
+}
+
+/* Lightweight motion adds feedback without slowing down the editor. */
+@keyframes content-rise-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modal-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modal-pop-in {
+  from { opacity: 0; transform: translateY(10px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes active-state-glow {
+  0% { filter: drop-shadow(0 0 0 #ff805f00); }
+  55% { filter: drop-shadow(0 0 7px #ff805f88); }
+  100% { filter: drop-shadow(0 0 2px #ff805f44); }
+}
+
+.page-heading { animation: content-rise-in .38s .03s both; }
+.editor-layout > .card { animation: content-rise-in .42s both; }
+.editor-layout > .card:nth-child(1) { animation-delay: .08s; }
+.editor-layout > .card:nth-child(2) { animation-delay: .15s; }
+.data-card { animation: content-rise-in .42s .2s both; }
+.page-footer { animation: content-rise-in .38s .24s both; }
+
+.modal-overlay { animation: modal-backdrop-in .16s ease-out both; }
+.modal-card { animation: modal-pop-in .22s cubic-bezier(.2,.75,.25,1) both; }
+.toast-enter-active, .toast-leave-active { transition: all .22s cubic-bezier(.2,.75,.25,1); }
+
+.new-state-button,
+.run-button,
+.examples-trigger,
+.diagram-add-state,
+.diagram-add-state-action,
+.confirm-button,
+.diagram-history-button,
+.diagram-reset-button,
+.diagram-expand-button,
+.diagram-theme-button,
+.icon-button,
+.share-button,
+.zoom-controls button,
+.mobile-drawer-link,
+.drawer-footer-button,
+.example-card,
+.transition-item-actions button {
+  transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease, border-color .16s ease, color .16s ease;
+}
+
+.new-state-button:hover,
+.run-button:hover,
+.examples-trigger:hover,
+.diagram-add-state:hover,
+.diagram-add-state-action:hover,
+.confirm-button:hover,
+.share-button:hover,
+.example-card:hover {
+  transform: translateY(-1px);
+}
+
+.new-state-button:active,
+.run-button:active,
+.examples-trigger:active,
+.diagram-add-state:active,
+.diagram-add-state-action:active,
+.confirm-button:active,
+.diagram-history-button:active,
+.diagram-reset-button:active,
+.diagram-expand-button:active,
+.diagram-theme-button:active,
+.icon-button:active,
+.share-button:active,
+.zoom-controls button:active,
+.mobile-drawer-link:active,
+.drawer-footer-button:active,
+.transition-item-actions button:active {
+  transform: scale(.96);
+}
+
+.example-card > svg,
+.drawer-link-arrow { transition: transform .18s ease; }
+.example-card:hover > svg,
+.mobile-drawer-link:hover .drawer-link-arrow { transform: translateX(3px); }
+.state-active .state-circle { animation: active-state-glow .42s ease-out both; }
+
+@media (max-width: 640px) {
+  .diagram-reset-button { font-size: 12px; }
+  .diagram-expanded .diagram-reset-button { font-size: 12px; }
+  .page-heading { animation-duration: .3s; }
+  .editor-layout > .card, .data-card, .page-footer { animation-duration: .34s; }
+  .diagram-card.diagram-expanded { animation: modal-backdrop-in .18s ease-out both; }
+  .mobile-drawer { animation-duration: .22s; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+.sample-row { flex-wrap: wrap; row-gap: 7px; }
+.sample-row button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  padding: 5px 7px;
+}
+.sample-status {
+  padding: 3px 5px;
+  border-radius: 4px;
+  font: 700 9px/1.1 'DM Sans', sans-serif;
+}
+.sample-accepted .sample-status { background: #eaf6ef; color: #43865c; }
+.sample-rejected .sample-status { background: #fff0ec; color: #b9624f; }
+.sample-invalid .sample-status { background: #f3edf7; color: #805e91; }
+.dark-mode .sample-accepted .sample-status { background: #263d30; color: #9dd4ad; }
+.dark-mode .sample-rejected .sample-status { background: #452e2a; color: #f0aa96; }
+.dark-mode .sample-invalid .sample-status { background: #3c3042; color: #d2b3e0; }
+.sample-row-empty small { color: #9aa2ae; font-size: 11px; }
+.dark-mode .sample-row-empty small { color: #a5adba; }
+
+.examples-modal {
+  max-height: min(88vh, 760px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.step-controls { justify-content: flex-start; }
+.step-controls > span { margin-inline: auto; text-align: center; }
+.step-controls button { height: 36px; padding: 0 9px; font-size: 12px; }
+.step-controls span { font-size: 12px; }
+.step-controls .step-play-button {
+  flex: 0 0 38px;
+  width: 38px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-color: #ff805f;
+  background: #ff805f;
+  color: #fff;
+}
+.step-controls .step-play-button:hover:not(:disabled) { background: #ed704f; color: #fff; }
+.dark-mode .step-controls .step-play-button { border-color: #ff805f; background: #ff805f; color: #fff; }
+.dark-mode .step-controls .step-play-button:hover:not(:disabled) { background: #ed704f; color: #fff; }
+
+.settings-option-speed { min-height: 68px; }
+.settings-option-speed > span { flex: 1; min-width: 0; }
+.settings-option-speed small { max-width: 180px; }
+.playback-speed-select {
+  flex: 0 0 126px;
+  width: 126px;
+  height: 38px;
+  padding: 0 8px;
+  border: 1px solid #e6e9ed;
+  border-radius: 6px;
+  background: #fff;
+  color: #4f5865;
+  font: 600 12px 'DM Sans', sans-serif;
+}
+.dark-mode .playback-speed-select { border-color: #39404c; background: #252a34; color: #d3d8e1; }
+
+@media (max-width: 380px) {
+  .step-controls { gap: 4px; margin-inline: 10px; }
+  .step-controls button { padding-inline: 6px; font-size: 11px; }
+  .step-controls span { font-size: 11px; }
+  .step-controls .step-play-button { flex-basis: 34px; width: 34px; }
+  .playback-speed-select { flex-basis: 116px; width: 116px; font-size: 11px; }
+}
+
+@keyframes active-edge-flow {
+  to { stroke-dashoffset: -26; }
+}
+
+@keyframes active-state-halo {
+  0% { opacity: .72; transform: scale(.78); }
+  100% { opacity: 0; transform: scale(1.24); }
+}
+
+.edge-active .edge-path {
+  stroke: #ff805f;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 3px #ff805f66);
+  transition: stroke .18s ease, stroke-width .18s ease, filter .18s ease;
+}
+.simulation-playing .edge-active .edge-path {
+  stroke-dasharray: 8 6;
+  animation: active-edge-flow .65s linear infinite;
+}
+.edge-active .edge-label rect { fill: #fff0eb; stroke: #f4a08a; stroke-width: 1.4; }
+.edge-active .edge-label text { fill: #b94e32; font-weight: 700; }
+.state-pulse-halo {
+  fill: none;
+  stroke: #ff805f;
+  stroke-width: 3;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: active-state-halo .9s ease-out infinite;
+  pointer-events: none;
+}
+.trace-current { box-shadow: inset 3px 0 #ff805f; font-weight: 700; }
+.trace-current .trace-step { color: #d86e50; }
+.dark-mode .edge-active .edge-label rect { fill: #482f2b; stroke: #a45d4d; }
+.dark-mode .edge-active .edge-label text { fill: #ffd0c1; }
+.dark-mode .trace-current .trace-step { color: #ffad93; }
+
+.accepted-path-mode .edge-path { opacity: .18; transition: opacity .2s ease, stroke .2s ease, stroke-width .2s ease; }
+.accepted-path-mode .edge-label { opacity: .28; transition: opacity .2s ease; }
+.accepted-path-mode .edge-active .edge-path {
+  opacity: 1;
+  stroke: #2caa72;
+  stroke-width: 3.2;
+  filter: drop-shadow(0 0 4px #2caa7270);
+}
+.accepted-path-mode .edge-active .edge-label { opacity: 1; }
+.accepted-path-mode .edge-active .edge-label rect { fill: #eaf8f0; stroke: #78c99b; stroke-width: 1.4; }
+.accepted-path-mode .edge-active .edge-label text { fill: #187848; font-weight: 700; }
+.accepted-path-mode .state-group:not(.state-accepting-path) .state-circle,
+.accepted-path-mode .state-group:not(.state-accepting-path) .state-label,
+.accepted-path-mode .state-group:not(.state-accepting-path) .final-ring { opacity: .34; transition: opacity .2s ease; }
+.accepted-path-mode .state-accepting-path .state-circle {
+  fill: #eaf8f0;
+  stroke: #2caa72;
+  stroke-width: 2.7;
+  filter: drop-shadow(0 0 5px #2caa7245);
+  animation-name: accepted-state-glow;
+}
+.accepted-path-mode .state-accepting-path .state-label { fill: #187848; font-weight: 700; }
+.accepted-path-mode .state-accepting-path .final-ring { stroke: #2caa72; stroke-width: 2; }
+.accepted-path-mode .state-dead-path .state-circle { animation: none; }
+.accepted-path-mode .state-pulse-halo { stroke: #2caa72; }
+.accepting-path-indicator {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  border: 1px solid #cbe9d7;
+  border-radius: 999px;
+  background: #f0faf4eF;
+  color: #22794d;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px #19362312;
+  pointer-events: none;
+  animation: accepted-indicator-in .22s ease-out both;
+}
+.accepting-path-indicator span { width: 7px; height: 7px; border-radius: 50%; background: #2caa72; box-shadow: 0 0 0 3px #2caa7220; }
+.dark-mode .accepted-path-mode .edge-active .edge-label rect { fill: #233c30; stroke: #478861; }
+.dark-mode .accepted-path-mode .edge-active .edge-label text { fill: #a9e4be; }
+.dark-mode .accepted-path-mode .state-accepting-path .state-circle { fill: #243a2d; stroke: #57ba80; }
+.dark-mode .accepted-path-mode .state-accepting-path .state-label { fill: #b2e8c4; }
+.dark-mode .accepted-path-mode .state-accepting-path .final-ring { stroke: #57ba80; }
+.dark-mode .accepting-path-indicator { background: #22372b; border-color: #365e43; color: #a9e4be; }
+.dark-mode .accepting-path-indicator span { background: #57ba80; box-shadow: 0 0 0 3px #57ba8026; }
+@keyframes accepted-indicator-in {
+  from { opacity: 0; transform: translateY(-4px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes accepted-state-glow {
+  0% { filter: drop-shadow(0 0 0 #2caa7200); }
+  55% { filter: drop-shadow(0 0 7px #2caa7288); }
+  100% { filter: drop-shadow(0 0 3px #2caa7245); }
+}
+
+@media (max-width: 640px) {
+  .accepting-path-indicator { top: 10px; right: 10px; padding: 6px 8px; font-size: 10px; }
+  .brand-name { font-size: 21px; }
+  .breadcrumbs { font-size: 13px; }
+  .saved-label { font-size: 12px; }
+  .drawer-eyebrow, .mobile-drawer-section { font-size: 11px; }
+  .drawer-workspace-status { font-size: 11px; }
+  .mobile-drawer-link { font-size: 15px; }
+  .drawer-footer-button { font-size: 14px; }
+  .mobile-drawer-workspace { font-size: 15px; }
+
+  .eyebrow { font-size: 11px; }
+  .page-heading h1 { font-size: 32px; }
+  .subtitle { font-size: 15px; line-height: 1.5; }
+  .section-title { font-size: 16px; }
+  .section-subtitle { font-size: 13px; }
+  .live-indicator { font-size: 10px; }
+  .state-label { font-size: 25px; }
+  .edge-label text { font-size: 19px; }
+  .diagram-expanded .state-label { font-size: 19px; }
+  .diagram-expanded .edge-label text { font-size: 15px; }
+  .state-control-row button { font-size: 11px; }
+  .diagram-add-state, .diagram-add-state-action { font-size: 14px; }
+  .zoom-controls span { font-size: 12px; }
+  .diagram-hint, .legend-item { font-size: 12px; }
+  .add-transition-link, .diagram-export-button { font-size: 12px; }
+
+  .field-label, .optional-label { font-size: 12px; }
+  .input-row input { font-size: 17px; }
+  .sample-row > span { font-size: 11px; }
+  .sample-row button { font-size: 14px; }
+  .run-button { font-size: 15px; }
+  .result-heading { font-size: 15px; }
+  .result-copy, .result-bottom, .trace-row, .trace-states { font-size: 13px; }
+  .trace-step { font-size: 11px; }
+  .trace-symbol { font-size: 13px; }
+  .sim-footnote { font-size: 12px; }
+
+  .data-tabs > button { font-size: 14px; }
+  .data-actions button { font-size: 12px; }
+  .transition-table { min-width: 520px; font-size: 14px; }
+  .transition-table th { font-size: 12px; }
+  .transition-table td, .state-cell { font-size: 14px; }
+  .dest-pill { font-size: 13px; }
+  .mini-tag { font-size: 10px; }
+  .table-footer, .tuple-note { font-size: 12px; }
+  .tuple-content pre { font-size: 14px; }
+  .page-footer { font-size: 11px; }
+
+  .guide-step h3 { font-size: 15px; }
+  .guide-step p { font-size: 14px; line-height: 1.55; }
+  .guide-eyebrow { font-size: 11px; }
+  .modal-heading h2 { font-size: 21px; }
+  .modal-heading p { font-size: 14px; }
+  .modal-fields label, .rename-label { font-size: 12px; }
+  .modal-fields select, .symbol-input { font-size: 15px; }
+  .cancel-button, .confirm-button { font-size: 14px; }
+  .settings-option strong { font-size: 14px; }
+  .settings-option small { font-size: 12px; }
+  .transition-manager-head strong { font-size: 14px; }
+  .transition-manager-head span { font-size: 12px; }
+  .transition-manager-head > button { font-size: 12px; }
+  .transition-state-name, .transition-symbol { font-size: 13px; }
+  .transition-empty { font-size: 13px; }
+  .batch-intro strong { font-size: 14px; }
+  .batch-intro p, .batch-empty { font-size: 12px; }
+  .batch-results-head { font-size: 10px; }
+  .batch-result-row code, .batch-ending { font-size: 12px; }
+  .batch-status { font-size: 11px; }
+  .example-card strong { font-size: 13px; }
+  .example-card small { font-size: 12px; }
 }
