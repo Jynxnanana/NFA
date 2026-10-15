@@ -61,14 +61,21 @@ watch([states,alphabet,transitions,start,finals],()=>{
   catch{saveStatus.value='Local save unavailable'}
 },{deep:true})
 const label = id => states.value.find(s => s.id === id)?.id ?? id
+const edgeBend = t => {
+  const parallel = transitions.value.filter(edge => edge.from === t.from && edge.to === t.to)
+  const parallelIndex = parallel.indexOf(t)
+  const hasReverse = transitions.value.some(edge => edge.from === t.to && edge.to === t.from)
+  if (hasReverse) return 26 + (parallelIndex - (parallel.length - 1) / 2) * 24
+  if (parallel.length > 1) return (parallelIndex - (parallel.length - 1) / 2) * 52
+  return 0
+}
 const edgePath = (t) => {
   const a = states.value.find(s => s.id === t.from), b = states.value.find(s => s.id === t.to)
   if (!a || !b) return ''
   if (a.id === b.id) return `M ${a.x - 19} ${a.y - 20} C ${a.x - 72} ${a.y - 91}, ${a.x + 72} ${a.y - 91}, ${a.x + 19} ${a.y - 20}`
   const dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy)||1, ux=dx/d, uy=dy/d
   const sx=a.x+ux*37-uy*12, sy=a.y+uy*37+ux*12, ex=b.x-ux*39-uy*12, ey=b.y-uy*39+ux*12
-  const parallel=transitions.value.filter(e=>e.from===t.from&&e.to===t.to)
-  const bend=parallel.length>1 ? (parallel.indexOf(t)===0?-26:26) : 0
+  const bend=edgeBend(t)
   const mx=(sx+ex)/2-uy*bend, my=(sy+ey)/2+ux*bend
   return `M ${sx} ${sy} Q ${mx} ${my} ${ex} ${ey}`
 }
@@ -76,7 +83,7 @@ const edgeLabel = t => {
   const a=states.value.find(s=>s.id===t.from), b=states.value.find(s=>s.id===t.to)
   if (!a||!b) return {x:0,y:0}
   if(a.id===b.id) return {x:a.x,y:a.y-77}
-  const p=transitions.value.filter(e=>e.from===t.from&&e.to===t.to), bend=p.length>1?(p.indexOf(t)===0?-26:26):0
+  const bend=edgeBend(t)
   const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1
   return {x:(a.x+b.x)/2-dy/d*bend,y:(a.y+b.y)/2+dx/d*bend-12}
 }
