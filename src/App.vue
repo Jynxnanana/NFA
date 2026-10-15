@@ -112,6 +112,32 @@ const activeEdgeKeys = computed(() => {
   const edges = hasAcceptingPath.value ? currentTraceStep.value?.acceptingTransitions : currentTraceStep.value?.transitions
   return new Set((edges ?? []).map(edgeKey))
 })
+const diagramTransitions = computed(() => {
+  const entries = []
+  const loopsByState = new Map()
+  transitions.value.forEach((edge, index) => {
+    if (edge.from !== edge.to) {
+      entries.push({ key: `edge-${index}`, edge, transitions: [edge], label: edge.symbol })
+      return
+    }
+    let loop = loopsByState.get(edge.from)
+    if (!loop) {
+      loop = { key: `loop-${edge.from}`, edge, transitions: [] }
+      loopsByState.set(edge.from, loop)
+      entries.push(loop)
+    }
+    loop.transitions.push(edge)
+  })
+  const symbolOrder = new Map([...alphabet.value, EPSILON].map((symbol, index) => [symbol, index]))
+  return entries.map(entry => {
+    if (entry.edge.from !== entry.edge.to) return entry
+    const symbols = [...new Set(entry.transitions.map(edge => edge.symbol))]
+      .sort((left, right) => (symbolOrder.get(left) ?? Infinity) - (symbolOrder.get(right) ?? Infinity))
+    return { ...entry, label: symbols.join(', ') }
+  })
+})
+const diagramTransitionActive = entry => entry.transitions.some(edge => activeEdgeKeys.value.has(edgeKey(edge)))
+const edgeLabelWidth = value => Math.max(26, [...value].length * 11 + 14)
 const simulationSamples = computed(() => {
   const sampleMachine = {
     states: states.value.map(state => state.id),
@@ -383,7 +409,7 @@ onBeforeUnmount(()=>{stopPlayback();document.removeEventListener('fullscreenchan
               <button class="diagram-add-state" @click="addState"><Plus :size="15"/> Add state</button>
               <svg class="diagram-svg" :class="{'simulation-playing':isPlaying,'accepted-path-mode':hasAcceptingPath}" :viewBox="diagramViewBox" preserveAspectRatio="xMidYMid meet" :style="{transform:`translate(${pan.x}px, ${pan.y}px) scale(${zoom})`}">
                 <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#9aa3b3"/></marker><marker id="activeArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#ff805f"/></marker><marker id="acceptingArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#2caa72"/></marker><marker id="startArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#ff805f"/></marker></defs>
-                <g v-for="(t,i) in transitions" :key="i" :class="{'edge-active':activeEdgeKeys.has(edgeKey(t))}"><path class="edge-path" :d="edgePath(t)" :marker-end="activeEdgeKeys.has(edgeKey(t))?(hasAcceptingPath?'url(#acceptingArrow)':'url(#activeArrow)'):'url(#arrow)'"/><g class="edge-label" :transform="`translate(${edgeLabel(t).x},${edgeLabel(t).y})`"><rect x="-13" y="-12" width="26" height="23" rx="7"/><text text-anchor="middle" dominant-baseline="central">{{t.symbol}}</text></g></g>
+                <g v-for="t in diagramTransitions" :key="t.key" :class="{'edge-active':diagramTransitionActive(t)}"><path class="edge-path" :d="edgePath(t.edge)" :marker-end="diagramTransitionActive(t)?(hasAcceptingPath?'url(#acceptingArrow)':'url(#activeArrow)'):'url(#arrow)'"/><g class="edge-label" :transform="`translate(${edgeLabel(t.edge).x},${edgeLabel(t.edge).y})`"><rect :x="-edgeLabelWidth(t.label)/2" y="-12" :width="edgeLabelWidth(t.label)" height="23" rx="7"/><text text-anchor="middle" dominant-baseline="central">{{t.label}}</text></g></g>
                 <g v-for="s in states" :key="s.id" class="state-group" :class="{'state-selected':selectedState===s.id,'state-legend-focus':focusedStates.some(target=>target.id===s.id),'state-active':highlightActiveStates&&currentStates.includes(s.id),'state-accepting-path':hasAcceptingPath&&currentTraceStep?.acceptingStates?.includes(s.id),'state-dead-path':hasAcceptingPath&&currentStates.includes(s.id)&&!currentTraceStep?.acceptingStates?.includes(s.id)}" @pointerdown.stop="startDrag($event,s)" @click.stop="selectedState=s.id">
                   <line v-if="s.id===start" :x1="s.x-76" :y1="s.y" :x2="s.x-43" :y2="s.y" class="start-line" marker-end="url(#startArrow)"/>
                   <circle v-if="isPlaying&&highlightActiveStates&&currentStates.includes(s.id)&&(!hasAcceptingPath||currentTraceStep?.acceptingStates?.includes(s.id))" :cx="s.x" :cy="s.y" r="43" class="state-pulse-halo"/>
